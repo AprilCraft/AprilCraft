@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>craft_ui</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="wwwroot\" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+  <Target Name="Copywwwroot" AfterTargets="Build">
+    <ItemGroup>
+      <CopyItems Include="wwwroot\.*" />
+    </ItemGroup>
+    <!--Copy SourceFiles="@(CopyItems)" DestinationFolder="bin\Debug\net6.0\wwwroot" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300" />
+    <Copy SourceFiles="@(CopyItems)" DestinationFolder="$(OutDir)\ImageServer\wwwroot" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300" />
+    <Copy SourceFiles="@(CopyItems)" DestinationFolder="bin\Release\net6.0\wwwroot" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300" />
+    <Copy SourceFiles="@(CopyItems)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300" />
+    <Copy SourceFiles="@(CopyItems)" DestinationFolder="heroku_output" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300"/>
+    <Copy SourceFiles="@(CopyItems)" DestinationFolder="/app/heroku_output/" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300"/>
+    <Copy SourceFiles="@(CopyItems)" DestinationFolder="$(OutDir)\wwwroot" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300" />-->
+  </Target>
+</Project>

@@ -1,0 +1,91 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@namespace craft_ui.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A design group focused on branding, media posters, flyers, banners and more. Please visit our website">
+    <meta name="keywords" content="AprilCraft, Design, Gallery">
+    <meta property="og:image"
+          content="http://marie27-001-site1.ctempurl.com/assets/images/logo/made_1.png" />
+    <meta property="og:title" content="AprilCraft" />
+    <meta name="author" content="Alain Kimbu">
+    <base href="~/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/assets/vendors/tailwind/font.awesome.css">
+    <!-- <link rel="stylesheet" href="assets/vendors/tailwind/tailwind.elements.min.css"> -->
+    <link rel="stylesheet" href="~/assets/vendors/tailwind/tailwindcss.css">
+    <link href="css/site.css" rel="stylesheet" />
+    <link href="css/index.css" rel="stylesheet" />
+    <link href="craft-ui.styles.css" rel="stylesheet" />
+
+    <title>AprilCraft</title>
+    <script src="~/assets/vendors/jquery-3.6.0.min.js"></script>
+    <script src="~/assets/vendors/tailwind/tailwindcss.js" deffer></script>
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+</head>
+<body>
+    @RenderBody()
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script defer>
+        App = {};
+
+        App.LoadScript = (function (Url, Instance, CallBack) {
+            var head = document.head;
+            var IsExist = false;
+            var Scripts = head.getElementsByTagName('script');
+            for (var i = Scripts.length; i--;) {
+                var Src = Scripts[i];
+                if (Src.src == Url || Src.src.replace(Src.baseURI, '') == Url) {
+                    IsExist = true;
+                    break;
+                }
+            }
+            if (!IsExist) {
+                var script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = Url;
+                if (CallBack && Instance) {
+                    script.onload = setTimeout(() => { App.CsharpInvoker(Instance, CallBack); }, 3000);
+                }
+                else if (CallBack)
+                    script.onload = setTimeout(() => { CallBack(); }, 1000);
+
+                head.appendChild(script);
+            }
+            else if (CallBack && Instance)
+                setTimeout(() => { App.CsharpInvoker(Instance, CallBack); }, 1000);
+            else if (CallBack)
+                setTimeout(() => { CallBack(); }, 1000);
+        });
+
+        App.CsharpInvoker = (function CSharpCallBackInvoker(Instance, MethodName, Parameter) {
+            Instance.invokeMethodAsync(MethodName, Parameter);
+        });
+
+        App.IsReady = true
+
+        function getReadiness() {
+            return App.IsReady;
+        }
+
+    </script>
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="~/js/index.js"></script>@*
+    <script src="~/assets/vendors/masonry.pkgd.min.js"></script>*@
+</body>
+</html>
