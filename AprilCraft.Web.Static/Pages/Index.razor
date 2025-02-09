@@ -44,6 +44,12 @@
 			<span class="dot" id="3"></span>
 			<span class="dot" id="4"></span>
 			<span class="dot" id="5"></span>
+			<span class="dot" id="6"></span>
+			<span class="dot" id="7"></span>
+			<span class="dot" id="8"></span>
+			<span class="dot" id="9"></span>
+			<span class="dot" id="10"></span>
+			<span class="dot" id="11"></span>
 		</div>
 	</div>
 	<div class="galler-view min-h-[100vh] min-w-[100vw]">
@@ -53,7 +59,7 @@
 		</div>
 		<div class="craft-list">
 
-			@foreach (var item in ListSmall)
+			@foreach (var item in ListSmall!)
 			{
 				<div class="craft border rounded-md hover:drop-shadow-xl" id="craft_@IncrementCounter1()">
 					<img class="craft-img" src="assets/images/thumbnails/@item" loading="lazy" style="background-image: none;">
@@ -89,12 +95,12 @@
 </div>
 
 @code {
-	private List<string> ListLarge;
-	private List<string> ListSmall;
+	private List<string>? ListLarge;
+	private List<string>? ListSmall;
 	private int Counter1;
 	private int Counter2;
 
-	protected override async Task OnInitializedAsync()
+	protected override void OnInitialized()
 	{
 		ListLarge = images.DesignsLarge;
 		ListSmall = images.DesignsSmall;

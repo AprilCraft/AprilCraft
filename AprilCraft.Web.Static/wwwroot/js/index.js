@@ -23,7 +23,7 @@ let thumbnail = (id, thumb) => {
 var loadingframe = $('.loading-frame')
 var loadframemini = $('.loading-frame-mini')
 
-function getBase64(src, callback) {
+function getBase64(src, id, callback) {
     var image = new Image()
     image.crossOrigin = 'Anonymous'
     image.onload = function () {
@@ -33,18 +33,18 @@ function getBase64(src, callback) {
         canvas.width = this.naturalWidth
         context.drawImage(this, 0, 0)
         var dataURL = canvas.toDataURL('image/jpeg')
-        callback(dataURL)
+        callback(id, dataURL)
     }
     image.src = src
 }
 
-let slideImages = new Array()
+let slideImages = []
 
 function DownloadSlideImages() {
     let i = 0
-    while (i < 6) {
-        getBase64(location.origin + "/assets/images/slides/" + i + ".jpg", (dataURL) => {
-            slideImages.push(dataURL)
+    while (i < 12) {
+        getBase64(location.origin + "/assets/images/slides/" + i + ".jpg", i, (id, dataURL) => {
+            slideImages.push({id: id, image: dataURL})
         })
         i++
     }
@@ -169,7 +169,7 @@ function init(data) {
         //data = new Array(data.split(','))// JSON.parse(data)
         //console.log(id)
         $('.g-main').fadeIn(100, (e) => {
-            $('.g-main').css('display', 'flex')
+            $('.g-main').css('display', 'grid')
             getImage(id, data)
         })
     })
@@ -235,17 +235,28 @@ function getImage(id, list) {
 
 
 let slideMessages = [
-    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Crafting your ideas into visuals</p></div>',
-    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Creating seasonal memories for you</p></div>',
-    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Bringing crafts of great quality</p></div>',
-    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Making your business standout among others</p></div>',
-    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Visualizing your intentions is our goal</p></div>',
-    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Let us prototype your ideas</p></div>'
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Turning your creative visions into reality</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Capturing the essence of each season for you</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Delivering top-notch craftsmanship every time</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Making your brand shine brighter than the rest</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Turning your ideas into stunning visuals</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Transforming your visions into reality</p></div>',
+
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Bringing your concepts to life through prototypes</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Crafting memories that last a lifetime</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Crafting excellence for you</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Making your ideas come alive</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Your vision, our creation</p></div>',
+    '<div class="content"><h1 class="craft-name text-5xl sm:text-8xl drop-shadow-md ksh">AprilCraft</h1><p class="text-lg my-3 sm:my-4 nr font-[500]">Innovating for a brighter future</p></div>'
 ]
+
 let currentId = 0
 
 let contents = $('div.contents');
 let changeContent = (t = 'n') => {
+    if (slideImages.length < 1) return;
+
+    firstTime = false;
     let m = innerWidth/2
     if (t == 'p') m = -1*m
     if (contents.children()[0] == null) {
@@ -286,7 +297,7 @@ let changeContent = (t = 'n') => {
             duration: 500,
             easing: 'linear',
             complete: () => {
-                if (currentId >= 6) currentId = 0
+                if (currentId > 11) currentId = 0
                 contents.html(slideMessages[currentId]).ready(() => {
                     $('.dot').animate({
                         backgroundColor: '#bbb'
@@ -298,12 +309,13 @@ let changeContent = (t = 'n') => {
                                 $('.dot').removeClass('active').ready(() => {
                                     $(`#${currentId}`).addClass('active')
                                 })
+                                    changeStarted = false;
                             }
                         }
                     )
                     $('div.main-bg, .main-bg-bg').css({
                         // 'transition': 'background-image 1.2s ease',
-                        'background-image': `url(${slideImages[currentId]})`,
+                        'background-image': `url(${slideImages.find(img => img.id == currentId).image})`,
                         // 'transition-timing-function': 'ease',
                         '-webkit-animation': 'fadein 1s',
                         '-moz-animation': 'fadein 1s',
@@ -334,14 +346,19 @@ let changeContent = (t = 'n') => {
     nextContent(PointerEvent)
 }, 8000)*/
 
-var animWaitTime = setWaitInterval()
+let firstTime = true, changeStarted = false
+
+let animWaitTime = setWaitInterval()
 
 function setWaitInterval() {
     return setInterval(() => {
+        if (changeStarted) return
+        changeStarted = true;
         bgFadeOut()
         currentId++
-        nextContent(PointerEvent)
-    }, 8000)
+        changeContent()
+        //nextContent(PointerEvent)
+    }, 10000)
 }
 
 let nextContent = (e) => {
@@ -350,7 +367,7 @@ let nextContent = (e) => {
 
 let previousContent = (e) => {
     if (currentId < 0) {
-        currentId = 5
+        currentId = 11
     }
     changeContent('p')
 }
@@ -358,7 +375,7 @@ let previousContent = (e) => {
 function bgFadeIn() {
     $('div.main-bg, .main-bg-bg').css({
         // 'transition': 'background-image 1.2s ease',
-        'background-image': `url(${slideImages[currentId]})`,
+        'background-image': `url(${slideImages.find(img => img.id == currentId).image})`,
         // 'transition-timing-function': 'ease',
         '-webkit-animation': 'fadein 1s',
         '-moz-animation': 'fadein 1s',

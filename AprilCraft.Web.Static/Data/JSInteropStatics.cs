@@ -3,7 +3,7 @@ namespace AprilCraft.Web.Static.Data
 {
 	public static class JSInteropStatics
 	{
-		private static readonly IWebHostEnvironment hostEnvironment;
+		// private static readonly IWebHostEnvironment hostEnvironment;
 
 		[JSInvokable]
 		public static string SaveVisitor(string visitData, long trackId, string origin)

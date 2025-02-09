@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>craft_ui</RootNamespace>
+    <RootNamespace>AprilCraft.Web.Static</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="wwwroot\" CopyToOutputDirectory="Always" />

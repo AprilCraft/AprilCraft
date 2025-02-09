@@ -22,8 +22,8 @@ namespace AprilCraft.Web.Static.Data
 
 		public class ImgThumb
 		{
-			public string ThumbInBase64 { get; set; }
-			public string FileName { get; set; }
+			public string? ThumbInBase64 { get; set; }
+			public string? FileName { get; set; }
 		}
 
 		List<string> GetFilesFromPath(string path)
@@ -31,7 +31,7 @@ namespace AprilCraft.Web.Static.Data
 			List<string> files = new List<string>();
 			try
 			{
-				files.AddRange(Directory.GetFiles(path).Select(Path.GetFileName));
+				files.AddRange(Directory.GetFiles(path).Select(Path.GetFileName)!);
 
 				/*foreach (string dir in Directory.GetDirectories(path))
 				{
@@ -40,7 +40,7 @@ namespace AprilCraft.Web.Static.Data
 			}
 			catch (Exception ex)
 			{
-				//Console.WriteLine(ex.Message);
+				Console.WriteLine(ex.Message);
 			}
 
 			return files;
@@ -55,7 +55,7 @@ namespace AprilCraft.Web.Static.Data
 		public List<ImgThumb> GetImageThumbs(string imagesPath)
 		{
 			List<string> imagesPaths = GetFilesFromPath(imagesPath);
-			string base64String = "";
+			// string base64String = "";
 			List<ImgThumb> list = new();
 			ImgThumb imgThumb = new();
 			foreach (var path in imagesPaths)
