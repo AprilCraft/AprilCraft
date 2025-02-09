@@ -15,6 +15,21 @@ Welcome to the official repository for AprilCraft, a design agency website. This
 
 AprilCraft is a design agency specializing in crafting visual content that brings your ideas to life. This repository contains the source code for the AprilCraft website, built using Blazor Server. The website reads files from a designated folder and presents them in a visually appealing gallery for showcasing our design works.
 
+### Project Description
+
+The **AprilCraft Website** is the official online presence for AprilCraft, a design agency dedicated to transforming ideas into stunning visual content. This project showcases a web application developed using Blazor Server, designed to dynamically read files from a specified folder and display them in a captivating gallery format.
+
+#### Key Objectives:
+- **Showcase Design Works**: Provide a platform to display our design works in an aesthetically pleasing gallery that highlights our creativity and craftsmanship.
+- **User-Friendly Interface**: Create an engaging and intuitive user experience, making it easy for visitors to navigate through the gallery and appreciate the visual content.
+- **Dynamic Content Loading**: Automatically read and display files from a designated folder, ensuring that the gallery remains up-to-date with the latest design projects without manual intervention.
+- **Responsive Design**: Ensure the website is fully responsive, providing a seamless experience across various devices, from desktops to mobile phones.
+
+#### Core Technologies:
+- **Blazor Server**: Leveraging the power of Blazor Server to build a rich, interactive web application.
+- **Dynamic File Reading**: Implementing functionality to read files from a folder and render them dynamically within the gallery.
+- **Responsive Layout**: Utilizing modern CSS techniques to create a responsive and visually appealing layout that adapts to different screen sizes.
+
 ## Key Features
 
 - **Blazor Server:** Utilizes Blazor Server to provide a rich, interactive web experience.
