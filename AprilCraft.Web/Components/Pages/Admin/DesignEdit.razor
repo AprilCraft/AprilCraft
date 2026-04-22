@@ -1,0 +1,302 @@
+@page "/admin/designs/new"
+@page "/admin/designs/{Id:int}"
+@layout AdminLayout
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@inject IDesignService DesignService
+@inject ICategoryService CategoryService
+@inject IImageService ImageService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>@(_isNew ? "New Design" : "Edit Design") — AprilCraft Admin</PageTitle>
+
+<div class="ac-admin-page-header">
+    <MudText Typo="Typo.h4">@(_isNew ? "New Design" : $"Edit: {_dto.Title}")</MudText>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/designs">Back</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudGrid>
+        <!-- Left: core metadata -->
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="2" Class="pa-6">
+                <MudText Typo="Typo.h6" Class="mb-4">Design Details</MudText>
+                <MudTextField @bind-Value="_dto.Title" Label="Title" Required="true" Variant="Variant.Outlined" Class="mb-4" />
+                <MudTextField @bind-Value="_dto.Description" Label="Description" Lines="3" Variant="Variant.Outlined" Class="mb-4" />
+                <MudSelect @bind-Value="_dto.CategoryId" Label="Category" Required="true" Variant="Variant.Outlined" Class="mb-4">
+                    @foreach (var cat in _categories)
+                    {
+                        <MudSelectItem Value="@cat.Id">@cat.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_dto.ClientName" Label="Client Name" Variant="Variant.Outlined" Class="mb-4" />
+                <MudDatePicker @bind-Date="_designDate" Label="Design Date" Variant="Variant.Outlined" Class="mb-4" />
+                <MudSwitch @bind-Value="_dto.IsFeatured" Label="Featured" Color="Color.Primary" />
+                <MudTextField @bind-Value="_tagsInput" Label="Tags (comma separated)" Variant="Variant.Outlined" Class="mt-4" />
+            </MudPaper>
+        </MudItem>
+
+        <!-- Right: variants & upload -->
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="2" Class="pa-6 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Design Variants</MudText>
+                @if (!_isNew && _design != null)
+                {
+                    @foreach (var v in _design.Variants.OrderBy(x => x.SortOrder))
+                    {
+                        <div class="ac-variant-row">
+                            <img src="@v.ThumbnailPath" class="ac-variant-thumb" alt="@v.Title" />
+                            <div class="ac-variant-info">
+                                <strong>@v.Title</strong>
+                                @if (v.IsClientSelected)
+                                {
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Selected</MudChip>
+                                }
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"
+                                           Color="@(v.IsClientSelected ? Color.Success : Color.Default)"
+                                           OnClick="() => SetSelected(v.Id)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="() => DeleteVariant(v.Id)" />
+                        </div>
+                    }
+                }
+
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Upload New Variant</MudText>
+                <MudTextField @bind-Value="_variantTitle" Label="Variant label" Variant="Variant.Outlined" Class="mb-2" />
+                <InputFile id="variantFile" OnChange="HandleVariantUpload" hidden accept="image/*" />
+                <label for="variantFile" class="ac-upload-label">
+                    <MudButton Variant="Variant.Outlined" Component="label" HtmlTag="label"
+                               StartIcon="@Icons.Material.Filled.Upload" For="variantFile">
+                        Choose image
+                    </MudButton>
+                </label>
+                @if (_uploading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2" />
+                }
+            </MudPaper>
+
+            @if (!_isNew && _design != null)
+            {
+                <!-- Resources -->
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Resources</MudText>
+                    @foreach (var r in _design.Resources)
+                    {
+                        <div class="ac-resource-row">
+                            <MudChip T="string" Size="Size.Small">@r.Type</MudChip>
+                            <span>@r.Name</span>
+                            @if (!string.IsNullOrEmpty(r.Url))
+                            {
+                                <a href="@r.Url" target="_blank"><MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" /></a>
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="() => DeleteResource(r.Id)" />
+                        </div>
+                    }
+                    <MudGrid Class="mt-2">
+                        <MudItem xs="4">
+                            <MudSelect @bind-Value="_newResourceType" Label="Type" Variant="Variant.Outlined" Dense="true">
+                                @foreach (ResourceType t in Enum.GetValues<ResourceType>())
+                                {
+                                    <MudSelectItem Value="t">@t</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="5">
+                            <MudTextField @bind-Value="_newResourceName" Label="Name" Variant="Variant.Outlined" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="3" Class="d-flex align-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddResource" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudTextField @bind-Value="_newResourceUrl" Label="URL (optional)" Variant="Variant.Outlined" Dense="true" Class="mt-2" />
+                </MudPaper>
+
+                <!-- Feedback -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Client Feedback</MudText>
+                    @foreach (var fb in _design.ClientFeedbacks)
+                    {
+                        <div class="ac-feedback-item">
+                            <div class="ac-feedback-stars">
+                                @for (int i = 0; i < 5; i++)
+                                {
+                                    <MudIcon Icon="@(i < fb.Rating ? Icons.Material.Filled.Star : Icons.Material.Outlined.Star)"
+                                             Size="Size.Small" Color="Color.Warning" />
+                                }
+                            </div>
+                            <p>@fb.Feedback — <em>@fb.ClientName</em></p>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="() => DeleteFeedback(fb.Id)" />
+                        </div>
+                    }
+                    <MudTextField @bind-Value="_fbClient" Label="Client Name" Variant="Variant.Outlined" Dense="true" Class="mt-2" />
+                    <MudTextField @bind-Value="_fbText" Label="Feedback" Lines="2" Variant="Variant.Outlined" Dense="true" Class="mt-2" />
+                    <div class="d-flex align-center gap-2 mt-2">
+                        <MudRating @bind-SelectedValue="_fbRating" MaxValue="5" Color="Color.Warning" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AddFeedback">Add</MudButton>
+                    </div>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+
+    <div class="ac-form-actions mt-6">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="_saving">
+            @(_saving ? "Saving…" : (_isNew ? "Create Design" : "Save Changes"))
+        </MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private bool _isNew => Id == null;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _uploading;
+
+    private DesignDto _dto = new();
+    private Design? _design;
+    private List<Category> _categories = new();
+    private string _tagsInput = string.Empty;
+    private DateTime? _designDate = DateTime.Today;
+    private string _variantTitle = "Default";
+
+    private ResourceType _newResourceType = ResourceType.Font;
+    private string _newResourceName = string.Empty;
+    private string? _newResourceUrl;
+
+    private string _fbClient = string.Empty;
+    private string _fbText = string.Empty;
+    private int _fbRating = 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await CategoryService.GetAllAsync();
+        if (!_isNew && Id.HasValue)
+        {
+            _design = await DesignService.GetByIdAsync(Id.Value);
+            if (_design != null)
+            {
+                _dto = new DesignDto
+                {
+                    Title = _design.Title,
+                    Description = _design.Description,
+                    CategoryId = _design.CategoryId,
+                    ClientName = _design.ClientName,
+                    DesignDate = _design.DesignDate,
+                    IsFeatured = _design.IsFeatured,
+                };
+                _designDate = _design.DesignDate;
+                _tagsInput = string.Join(", ", _design.DesignTags.Select(dt => dt.Tag?.Name ?? ""));
+            }
+        }
+        else if (_categories.Any())
+        {
+            _dto.CategoryId = _categories.First().Id;
+        }
+        _loading = false;
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        _dto.DesignDate = _designDate ?? DateTime.Today;
+        _dto.Tags = _tagsInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+        if (_isNew)
+        {
+            var created = await DesignService.CreateAsync(_dto);
+            Snackbar.Add("Design created!", Severity.Success);
+            Nav.NavigateTo($"/admin/designs/{created.Id}");
+        }
+        else
+        {
+            await DesignService.UpdateAsync(Id!.Value, _dto);
+            _design = await DesignService.GetByIdAsync(Id.Value);
+            Snackbar.Add("Saved!", Severity.Success);
+        }
+        _saving = false;
+    }
+
+    private async Task HandleVariantUpload(InputFileChangeEventArgs e)
+    {
+        if (_isNew) { Snackbar.Add("Save the design first before uploading images.", Severity.Warning); return; }
+        _uploading = true;
+        var file = e.File;
+        using var stream = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
+        var (imgPath, thumbPath) = await ImageService.SaveVariantImageAsync(stream, file.Name, Id!.Value, _variantTitle);
+        await DesignService.AddVariantAsync(Id.Value, new VariantDto
+        {
+            Title = _variantTitle,
+            ImagePath = imgPath,
+            ThumbnailPath = thumbPath,
+            SortOrder = _design?.Variants.Count ?? 0
+        });
+        _design = await DesignService.GetByIdAsync(Id.Value);
+        _uploading = false;
+        Snackbar.Add("Variant uploaded!", Severity.Success);
+    }
+
+    private async Task SetSelected(int variantId)
+    {
+        await DesignService.SetSelectedVariantAsync(Id!.Value, variantId);
+        _design = await DesignService.GetByIdAsync(Id.Value);
+    }
+
+    private async Task DeleteVariant(int variantId)
+    {
+        await DesignService.DeleteVariantAsync(variantId);
+        _design = await DesignService.GetByIdAsync(Id!.Value);
+    }
+
+    private async Task AddResource()
+    {
+        if (string.IsNullOrWhiteSpace(_newResourceName)) return;
+        await DesignService.AddResourceAsync(Id!.Value, new ResourceDto
+        {
+            Name = _newResourceName,
+            Type = _newResourceType,
+            Url = _newResourceUrl
+        });
+        _design = await DesignService.GetByIdAsync(Id.Value);
+        _newResourceName = string.Empty;
+        _newResourceUrl = null;
+    }
+
+    private async Task DeleteResource(int resourceId)
+    {
+        await DesignService.DeleteResourceAsync(resourceId);
+        _design = await DesignService.GetByIdAsync(Id!.Value);
+    }
+
+    private async Task AddFeedback()
+    {
+        if (string.IsNullOrWhiteSpace(_fbClient) || string.IsNullOrWhiteSpace(_fbText)) return;
+        await DesignService.AddFeedbackAsync(Id!.Value, new FeedbackDto
+        {
+            ClientName = _fbClient,
+            Feedback = _fbText,
+            Rating = _fbRating
+        });
+        _design = await DesignService.GetByIdAsync(Id.Value);
+        _fbClient = string.Empty;
+        _fbText = string.Empty;
+        _fbRating = 5;
+    }
+
+    private async Task DeleteFeedback(int feedbackId)
+    {
+        await DesignService.DeleteFeedbackAsync(feedbackId);
+        _design = await DesignService.GetByIdAsync(Id!.Value);
+    }
+}

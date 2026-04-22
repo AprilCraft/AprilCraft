@@ -1,0 +1,193 @@
+@page "/admin/inspirations"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@inject IDesignService DesignService
+@inject IImageService ImageService
+@inject AppDbContext Db
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<div class="ac-admin-page-header">
+    <MudText Typo="Typo.h5" Style="font-weight:700;">Inspirations</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Warning"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="() => OpenDialog(null)">Add Inspiration</MudButton>
+</div>
+
+<MudTable Items="_items" Hover="true" Striped="true" Loading="_loading"
+          Dense="true" Elevation="2" Style="border-radius:12px; overflow:hidden;">
+    <HeaderContent>
+        <MudTh>Image</MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>URL</MudTh>
+        <MudTh>Added</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            @if (!string.IsNullOrEmpty(context.ImagePath))
+            {
+                <img src="@context.ImagePath" class="ac-table-thumb" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.ImageNotSupported" Style="opacity:0.3;" />
+            }
+        </MudTd>
+        <MudTd>@context.Title</MudTd>
+        <MudTd Style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            @context.Description
+        </MudTd>
+        <MudTd>
+            @if (!string.IsNullOrEmpty(context.Url))
+            {
+                <MudLink Href="@context.Url" Target="_blank">Link</MudLink>
+            }
+        </MudTd>
+        <MudTd>@context.CreatedAt.ToString("MMM dd, yyyy")</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                           OnClick="() => OpenDialog(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                           Color="Color.Error" OnClick="() => DeleteAsync(context)" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Class="pa-4" Style="opacity:0.5;">No inspirations yet.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+<!-- Dialog -->
+<MudDialog @bind-Visible="_dialogOpen" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_editing == null ? "Add" : "Edit") Inspiration</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_form.Title" Label="Title" Variant="Variant.Outlined"
+                      Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_form.Description" Label="Description" Variant="Variant.Outlined"
+                      Lines="3" Class="mb-3" />
+        <MudTextField @bind-Value="_form.Url" Label="Reference URL" Variant="Variant.Outlined"
+                      Placeholder="https://..." Class="mb-3" />
+        <MudText Typo="Typo.caption" Class="mb-1">Image</MudText>
+        <InputFile id="insp-img" OnChange="OnImageSelected" class="mb-3"
+                   accept="image/png,image/jpeg,image/webp" style="display:block; font-size:0.875rem;" />
+        @if (!string.IsNullOrEmpty(_form.ImagePath))
+        {
+            <img src="@_form.ImagePath" style="max-height:120px; border-radius:8px; margin-top:0.5rem;" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _dialogOpen = false">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                   OnClick="SaveAsync" Disabled="_saving">
+            @(_saving ? "Saving…" : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Inspiration> _items = [];
+    private bool _loading = true;
+    private bool _dialogOpen;
+    private bool _saving;
+    private Inspiration? _editing;
+    private FormModel _form = new();
+    private IBrowserFile? _selectedFile;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = await Db.Inspirations.OrderByDescending(x => x.CreatedAt).ToListAsync();
+        _loading = false;
+    }
+
+    private void OpenDialog(Inspiration? item)
+    {
+        _editing = item;
+        _selectedFile = null;
+        _form = item == null ? new() : new FormModel
+        {
+            Title = item.Title,
+            Description = item.Description ?? "",
+            Url = item.Url ?? "",
+            ImagePath = item.ImagePath ?? ""
+        };
+        _dialogOpen = true;
+    }
+
+    private void OnImageSelected(InputFileChangeEventArgs e) => _selectedFile = e.File;
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Title)) return;
+        _saving = true;
+        try
+        {
+            string? imgPath = _form.ImagePath;
+            if (_selectedFile != null)
+            {
+                await using var s = _selectedFile.OpenReadStream(maxAllowedSize: 10_000_000);
+                imgPath = await ImageService.SaveInspirationImageAsync(s, _selectedFile.Name);
+            }
+
+            if (_editing == null)
+            {
+                var item = new Inspiration
+                {
+                    Title = _form.Title,
+                    Description = _form.Description,
+                    Url = _form.Url,
+                    ImagePath = imgPath,
+                    CreatedAt = DateTime.UtcNow
+                };
+                Db.Inspirations.Add(item);
+            }
+            else
+            {
+                _editing.Title = _form.Title;
+                _editing.Description = _form.Description;
+                _editing.Url = _form.Url;
+                _editing.ImagePath = imgPath;
+                Db.Inspirations.Update(_editing);
+            }
+
+            await Db.SaveChangesAsync();
+            Snackbar.Add(_editing == null ? "Inspiration added." : "Inspiration updated.", Severity.Success);
+            _dialogOpen = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteAsync(Inspiration item)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync("Delete Inspiration",
+            $"Delete \"{item.Title}\"? This cannot be undone.",
+            "Delete", cancelText: "Cancel");
+        if (result != true) return;
+        Db.Inspirations.Remove(item);
+        await Db.SaveChangesAsync();
+        if (!string.IsNullOrEmpty(item.ImagePath)) ImageService.DeleteImage(item.ImagePath);
+        Snackbar.Add("Inspiration deleted.", Severity.Info);
+        await LoadAsync();
+    }
+
+    private class FormModel
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string ImagePath { get; set; } = "";
+    }
+}

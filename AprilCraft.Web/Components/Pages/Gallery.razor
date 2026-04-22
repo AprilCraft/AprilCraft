@@ -1,0 +1,87 @@
+@page "/gallery"
+@layout PublicLayout
+@rendermode InteractiveServer
+@inject IDesignService DesignService
+@inject ICategoryService CategoryService
+
+<PageTitle>Gallery — AprilCraft</PageTitle>
+
+<section class="ac-page-hero ac-page-hero--sm">
+    <h1 class="ac-brand-script">Design Gallery</h1>
+    <p>Browse our full portfolio of creative work</p>
+</section>
+
+<section class="ac-section">
+    <!-- Search + filter row -->
+    <div class="ac-toolbar">
+        <MudTextField @bind-Value="_search" Placeholder="Search designs…" Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined"
+                      DebounceInterval="400" OnDebounceIntervalElapsed="Search"
+                      Class="ac-search" />
+        <MudSelect T="int?" Value="_activeCat" ValueChanged="SetCategory"
+                   Variant="Variant.Outlined" Label="Category" Class="ac-cat-select">
+            <MudSelectItem T="int?" Value="@null">All Categories</MudSelectItem>
+            @foreach (var cat in _categories)
+            {
+                <MudSelectItem T="int?" Value="@cat.Id">@cat.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="ac-grid-loading"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+    }
+    else if (!_designs.Any())
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">No designs match your search.</MudAlert>
+    }
+    else
+    {
+        <div class="ac-grid">
+            @foreach (var d in _designs)
+            {
+                var design = d;
+                <DesignCard
+                    Title="@design.Title"
+                    ThumbnailUrl="@design.PrimaryVariant?.ThumbnailPath"
+                    Category="@design.Category.Name"
+                    ClientName="@design.ClientName"
+                    Featured="@design.IsFeatured"
+                    Tags="@design.DesignTags.Select(t => t.Tag?.Name ?? "")"
+                    OnClick="@(() => _lightbox.Open(design))" />
+            }
+        </div>
+    }
+</section>
+
+<DesignLightbox @ref="_lightbox" />
+
+@code {
+    private List<Design> _designs = new();
+    private List<Category> _categories = new();
+    private DesignLightbox _lightbox = null!;
+    private int? _activeCat;
+    private string? _search;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await CategoryService.GetAllAsync();
+        await Reload();
+        _loading = false;
+    }
+
+    private async Task Search() => await Reload();
+
+    private async Task SetCategory(int? catId)
+    {
+        _activeCat = catId;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _designs = await DesignService.GetAllAsync(_activeCat, _search);
+    }
+}

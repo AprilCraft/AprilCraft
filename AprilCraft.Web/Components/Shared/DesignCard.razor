@@ -1,0 +1,51 @@
+@* Shared design card shown in the gallery grid *@
+@using AprilCraft.Web.Data.Models
+
+<div class="ac-card @(Featured ? "ac-card--featured" : "")" @onclick="OnClick">
+    <div class="ac-card-img-wrap">
+        @if (!string.IsNullOrEmpty(ThumbnailUrl))
+        {
+            <img src="@ThumbnailUrl" alt="@Title" loading="lazy" class="ac-card-img" />
+        }
+        else
+        {
+            <div class="ac-card-img-placeholder">
+                <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Default" />
+            </div>
+        }
+        @if (Featured)
+        {
+            <span class="ac-card-badge">Featured</span>
+        }
+        <div class="ac-card-overlay">
+            <MudIcon Icon="@Icons.Material.Filled.ZoomIn" Color="Color.Surface" />
+        </div>
+    </div>
+    <div class="ac-card-body">
+        <span class="ac-card-category">@Category</span>
+        <h3 class="ac-card-title">@Title</h3>
+        @if (!string.IsNullOrEmpty(ClientName))
+        {
+            <span class="ac-card-client">@ClientName</span>
+        }
+        @if (Tags != null && Tags.Any())
+        {
+            <div class="ac-card-tags">
+                @foreach (var tag in Tags.Take(3))
+                {
+                    <span class="ac-tag">@tag</span>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? ThumbnailUrl { get; set; }
+    [Parameter] public string Category { get; set; } = string.Empty;
+    [Parameter] public string? ClientName { get; set; }
+    [Parameter] public bool Featured { get; set; }
+    [Parameter] public IEnumerable<string>? Tags { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}

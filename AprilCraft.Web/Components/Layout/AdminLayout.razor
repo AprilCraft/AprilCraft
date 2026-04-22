@@ -1,0 +1,55 @@
+@inherits LayoutComponentBase
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+
+<MudThemeProvider Theme="_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="2" Color="Color.Dark" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                       Edge="Edge.Start" OnClick="() => _drawerOpen = !_drawerOpen" />
+        <span class="ac-brand-script ac-admin-brand">AprilCraft Admin</span>
+        <MudSpacer />
+        <MudTooltip Text="View Site">
+            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Inherit" Href="/" Target="_blank" />
+        </MudTooltip>
+        <form method="post" action="/account/logout">
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" ButtonType="ButtonType.Submit" />
+        </form>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Responsive" Color="Color.Dark">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6" Class="ac-brand-script" Style="color:var(--mud-palette-primary)">AprilCraft</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            <MudNavLink Href="/admin/designs" Icon="@Icons.Material.Filled.Palette">Designs</MudNavLink>
+            <MudNavLink Href="/admin/categories" Icon="@Icons.Material.Filled.Category">Categories</MudNavLink>
+            <MudNavLink Href="/admin/inspirations" Icon="@Icons.Material.Filled.Lightbulb">Inspirations</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="ac-admin-content">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#F0A020",
+            PrimaryContrastText = "#121212",
+            Background = "#121212",
+            Surface = "#1A1A1A",
+            DrawerBackground = "#151515",
+            AppbarBackground = "#0F0F0F",
+        }
+    };
+}

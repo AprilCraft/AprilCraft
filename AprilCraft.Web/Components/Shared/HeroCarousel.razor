@@ -1,0 +1,70 @@
+@* Hero carousel for the home page *@
+
+<div class="ac-carousel" @onmouseenter="PauseAuto" @onmouseleave="ResumeAuto">
+    <div class="ac-carousel-track" style="transform: translateX(-@(_current * 100)%)">
+        @foreach (var slide in Slides)
+        {
+            <div class="ac-carousel-slide">
+                <img src="@slide.ImageUrl" alt="@slide.Title" class="ac-carousel-img" />
+                <div class="ac-carousel-caption">
+                    <span class="ac-brand-script ac-carousel-brand">AprilCraft</span>
+                    <p class="ac-carousel-tagline">Turning your creative visions into reality</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button class="ac-carousel-btn ac-carousel-btn--prev" @onclick="Prev" aria-label="Previous">
+        <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" />
+    </button>
+    <button class="ac-carousel-btn ac-carousel-btn--next" @onclick="Next" aria-label="Next">
+        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+    </button>
+
+    <div class="ac-carousel-dots">
+        @for (int i = 0; i < Slides.Count; i++)
+        {
+            var idx = i;
+            <button class="ac-dot @(_current == idx ? "active" : "")"
+                    @onclick="() => GoTo(idx)" aria-label="Slide @(idx+1)"></button>
+        }
+    </div>
+</div>
+
+@implements IDisposable
+
+@code {
+    [Parameter] public List<CarouselSlide> Slides { get; set; } = new();
+    [Parameter] public int IntervalMs { get; set; } = 4000;
+
+    private int _current;
+    private System.Timers.Timer? _timer;
+    private bool _paused;
+
+    public record CarouselSlide(string ImageUrl, string Title);
+
+    protected override void OnInitialized()
+    {
+        if (Slides.Count > 1)
+        {
+            _timer = new System.Timers.Timer(IntervalMs);
+            _timer.Elapsed += async (_, _) =>
+            {
+                if (!_paused)
+                {
+                    Next();
+                    await InvokeAsync(StateHasChanged);
+                }
+            };
+            _timer.Start();
+        }
+    }
+
+    private void Next() => _current = (_current + 1) % Math.Max(Slides.Count, 1);
+    private void Prev() => _current = (_current - 1 + Math.Max(Slides.Count, 1)) % Math.Max(Slides.Count, 1);
+    private void GoTo(int i) => _current = i;
+    private void PauseAuto() => _paused = true;
+    private void ResumeAuto() => _paused = false;
+
+    public void Dispose() => _timer?.Dispose();
+}

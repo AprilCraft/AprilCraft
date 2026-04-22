@@ -1,0 +1,115 @@
+@* Full-screen lightbox overlay for viewing a design's variants *@
+@using AprilCraft.Web.Data.Models
+
+@if (_open && Design != null)
+{
+    <div class="ac-lightbox" @onclick="Close">
+        <div class="ac-lightbox-panel" @onclick:stopPropagation="true">
+            <div class="ac-lightbox-header">
+                <div>
+                    <h2 class="ac-lightbox-title">@Design.Title</h2>
+                    <span class="ac-lightbox-cat">@Design.Category?.Name</span>
+                </div>
+                <button class="ac-lightbox-close" @onclick="Close" aria-label="Close">
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+                </button>
+            </div>
+
+            <div class="ac-lightbox-body">
+                <!-- Main image -->
+                <div class="ac-lightbox-main">
+                    @if (_activeVariant != null)
+                    {
+                        <img src="@_activeVariant.ImagePath" alt="@_activeVariant.Title"
+                             class="ac-lightbox-img" />
+                        @if (_activeVariant.IsClientSelected)
+                        {
+                            <span class="ac-lightbox-selected-badge">Client Selected</span>
+                        }
+                    }
+                </div>
+                <!-- Variant strip -->
+                @if (Design.Variants.Count > 1)
+                {
+                    <div class="ac-lightbox-thumbs">
+                        @foreach (var v in Design.Variants.OrderBy(x => x.SortOrder))
+                        {
+                            <button class="ac-lightbox-thumb @(_activeVariant?.Id == v.Id ? "active" : "")"
+                                    @onclick="() => _activeVariant = v">
+                                <img src="@v.ThumbnailPath" alt="@v.Title" />
+                                @if (v.IsClientSelected)
+                                {
+                                    <span class="ac-thumb-check"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /></span>
+                                }
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Info panel -->
+            <div class="ac-lightbox-info">
+                @if (!string.IsNullOrEmpty(Design.Description))
+                {
+                    <p class="ac-lightbox-desc">@Design.Description</p>
+                }
+                <div class="ac-lightbox-meta">
+                    @if (!string.IsNullOrEmpty(Design.ClientName))
+                    {
+                        <span><MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" /> @Design.ClientName</span>
+                    }
+                    <span><MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" /> @Design.DesignDate.ToString("MMM yyyy")</span>
+                </div>
+                @if (Design.DesignTags.Any())
+                {
+                    <div class="ac-card-tags">
+                        @foreach (var dt in Design.DesignTags)
+                        {
+                            <span class="ac-tag">@dt.Tag?.Name</span>
+                        }
+                    </div>
+                }
+                @if (Design.ClientFeedbacks.Any(f => f.IsPublic))
+                {
+                    <div class="ac-lightbox-feedbacks">
+                        <h4>Client Feedback</h4>
+                        @foreach (var fb in Design.ClientFeedbacks.Where(f => f.IsPublic).Take(2))
+                        {
+                            <div class="ac-feedback-item">
+                                <div class="ac-feedback-stars">
+                                    @for (int i = 0; i < 5; i++)
+                                    {
+                                        <MudIcon Icon="@(i < fb.Rating ? Icons.Material.Filled.Star : Icons.Material.Outlined.Star)"
+                                                 Size="Size.Small" Color="Color.Warning" />
+                                    }
+                                </div>
+                                <p class="ac-feedback-text">@fb.Feedback</p>
+                                <span class="ac-feedback-by">— @fb.ClientName</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _open;
+    private Design? Design;
+    private DesignVariant? _activeVariant;
+
+    public void Open(Design design)
+    {
+        Design = design;
+        _activeVariant = design.PrimaryVariant;
+        _open = true;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        _open = false;
+        StateHasChanged();
+    }
+}

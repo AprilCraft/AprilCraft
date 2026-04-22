@@ -1,0 +1,57 @@
+@page "/contact"
+@layout PublicLayout
+@rendermode InteractiveServer
+
+<div class="ac-page-hero">
+    <h1 class="ac-brand-script">Get in Touch</h1>
+    <p>Have a project in mind? Let's talk.</p>
+</div>
+
+<div class="ac-section" style="max-width:640px;">
+    @if (_sent)
+    {
+        <MudAlert Severity="Severity.Success" Style="border-radius:12px; margin-bottom:1.5rem;">
+            Thank you! Your message has been received.
+        </MudAlert>
+    }
+    <MudPaper Class="pa-6" Elevation="2" Style="border-radius:12px;">
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="Your Name" Variant="Variant.Outlined"
+                          Required="true" RequiredError="Name is required." Class="mb-4" />
+            <MudTextField @bind-Value="_email" Label="Email Address" Variant="Variant.Outlined"
+                          Required="true" RequiredError="Email is required."
+                          InputType="InputType.Email" Class="mb-4" />
+            <MudTextField @bind-Value="_message" Label="Message" Variant="Variant.Outlined"
+                          Required="true" RequiredError="Message is required."
+                          Lines="6" Class="mb-4" />
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true"
+                       Style="font-weight:700;" OnClick="SubmitAsync">
+                Send Message
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1" Style="border-radius:12px; opacity:0.8;">
+        <MudText Typo="Typo.body2">
+            Prefer email? Reach out directly at
+            <MudLink Href="mailto:hello@aprilcraft.cm">hello@aprilcraft.cm</MudLink>
+        </MudText>
+    </MudPaper>
+</div>
+
+@code {
+    private MudForm _form = default!;
+    private string _name = "", _email = "", _message = "";
+    private bool _sent;
+
+    private async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (_form.IsValid)
+        {
+            // TODO: wire up real email / contact submission
+            _sent = true;
+            _name = _email = _message = "";
+        }
+    }
+}

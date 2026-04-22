@@ -1,0 +1,106 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+
+<MudThemeProvider @ref="_mudThemeProvider" @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<!-- Public Navigation -->
+<header class="ac-nav @(_scrolled ? "ac-nav--scrolled" : "")">
+    <div class="ac-nav-inner">
+        <a href="/" class="ac-brand">
+            <span class="ac-brand-script">AprilCraft</span>
+        </a>
+        <nav class="ac-nav-links">
+            <a href="/" class="@NavClass("/")">Home</a>
+            <a href="/gallery" class="@NavClass("/gallery")">Gallery</a>
+            <a href="/about" class="@NavClass("/about")">About</a>
+            <a href="/contact" class="@NavClass("/contact")">Contact</a>
+        </nav>
+        <div class="ac-nav-actions">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit" OnClick="ToggleTheme" Class="ac-theme-btn" />
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                           Class="ac-mobile-menu-btn" OnClick="ToggleMobile" />
+        </div>
+    </div>
+    <div class="ac-mobile-nav @(_mobileOpen ? "open" : "")">
+        <a href="/" @onclick="CloseMobile">Home</a>
+        <a href="/gallery" @onclick="CloseMobile">Gallery</a>
+        <a href="/about" @onclick="CloseMobile">About</a>
+        <a href="/contact" @onclick="CloseMobile">Contact</a>
+    </div>
+</header>
+
+<main class="ac-main">
+    @Body
+</main>
+
+<footer class="ac-footer">
+    <div class="ac-footer-inner">
+        <div class="ac-footer-brand">
+            <span class="ac-brand-script">AprilCraft</span>
+            <p>Turning your creative visions into reality.</p>
+        </div>
+        <div class="ac-footer-links">
+            <h4>Quick Links</h4>
+            <a href="/">Home</a>
+            <a href="/gallery">Gallery</a>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+        </div>
+        <div class="ac-footer-social">
+            <h4>Follow Us</h4>
+            <div class="ac-social-row">
+                <a href="#" aria-label="Facebook"><MudIcon Icon="@Icons.Custom.Brands.Facebook" /></a>
+                <a href="#" aria-label="Instagram"><MudIcon Icon="@Icons.Material.Filled.PhotoCamera" /></a>
+            </div>
+        </div>
+    </div>
+    <div class="ac-footer-bottom">
+        <span>© @DateTime.Now.Year AprilCraft. All rights reserved.</span>
+        <a href="/account/login" class="ac-admin-link">Admin</a>
+    </div>
+</footer>
+
+@code {
+    private MudThemeProvider _mudThemeProvider = null!;
+    private bool _isDarkMode = true;
+    private bool _scrolled;
+    private bool _mobileOpen;
+
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#D4870A",
+            PrimaryContrastText = "#FFFFFF",
+            Background = "#F8F8F8",
+            Surface = "#FFFFFF",
+            DrawerBackground = "#FFFFFF",
+            AppbarBackground = "#FFFFFF",
+            TextPrimary = "#1A1A1A",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#F0A020",
+            PrimaryContrastText = "#121212",
+            Background = "#121212",
+            Surface = "#1E1E1E",
+            DrawerBackground = "#1A1A1A",
+            AppbarBackground = "#181818",
+            TextPrimary = "#F0F0F0",
+        }
+    };
+
+    private void ToggleTheme() => _isDarkMode = !_isDarkMode;
+    private void ToggleMobile() => _mobileOpen = !_mobileOpen;
+    private void CloseMobile() => _mobileOpen = false;
+
+    private string NavClass(string path)
+    {
+        var current = new Uri(Nav.Uri).AbsolutePath;
+        return current == path ? "ac-nav-link active" : "ac-nav-link";
+    }
+}

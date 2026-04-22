@@ -1,0 +1,94 @@
+@page "/admin/categories"
+@layout AdminLayout
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@inject ICategoryService CategoryService
+@inject ISnackbar Snackbar
+
+<PageTitle>Categories — AprilCraft Admin</PageTitle>
+
+<div class="ac-admin-page-header">
+    <MudText Typo="Typo.h4">Categories</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="OpenNew">New Category</MudButton>
+</div>
+
+<MudTable Items="_categories" Hover="true" Dense="true" Striped="true">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Description</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => OpenEdit(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                           OnClick="() => ConfirmDelete(context)" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<!-- Edit / New dialog -->
+<MudDialog @bind-Visible="_formVisible">
+    <TitleContent>@(_editTarget == null ? "New Category" : "Edit Category")</TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_formName" Label="Name" Variant="Variant.Outlined" Required="true" Class="mb-4" />
+        <MudTextField @bind-Value="_formDesc" Label="Description" Lines="2" Variant="Variant.Outlined" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _formVisible = false">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveCategory">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Delete dialog -->
+<MudDialog @bind-Visible="_deleteVisible">
+    <TitleContent>Delete Category</TitleContent>
+    <DialogContent>
+        <MudText>Delete <strong>@_deleteTarget?.Name</strong>? Designs in this category won't be deleted.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _deleteVisible = false">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="DeleteConfirmed">Delete</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Category> _categories = new();
+    private bool _formVisible;
+    private bool _deleteVisible;
+    private Category? _editTarget;
+    private Category? _deleteTarget;
+    private string _formName = string.Empty;
+    private string? _formDesc;
+
+    protected override async Task OnInitializedAsync() =>
+        _categories = await CategoryService.GetAllAsync();
+
+    private void OpenNew() { _editTarget = null; _formName = string.Empty; _formDesc = null; _formVisible = true; }
+    private void OpenEdit(Category c) { _editTarget = c; _formName = c.Name; _formDesc = c.Description; _formVisible = true; }
+    private void ConfirmDelete(Category c) { _deleteTarget = c; _deleteVisible = true; }
+
+    private async Task SaveCategory()
+    {
+        if (string.IsNullOrWhiteSpace(_formName)) return;
+        if (_editTarget == null)
+            await CategoryService.CreateAsync(_formName, _formDesc, null);
+        else
+            await CategoryService.UpdateAsync(_editTarget.Id, _formName, _formDesc, _editTarget.Icon);
+        _categories = await CategoryService.GetAllAsync();
+        Snackbar.Add("Saved!", Severity.Success);
+        _formVisible = false;
+    }
+
+    private async Task DeleteConfirmed()
+    {
+        if (_deleteTarget == null) return;
+        await CategoryService.DeleteAsync(_deleteTarget.Id);
+        _categories = await CategoryService.GetAllAsync();
+        Snackbar.Add("Deleted.", Severity.Success);
+        _deleteVisible = false;
+    }
+}

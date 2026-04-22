@@ -1,0 +1,151 @@
+﻿@page "/"
+@layout PublicLayout
+@rendermode InteractiveServer
+@inject IDesignService DesignService
+@inject ICategoryService CategoryService
+
+<PageTitle>AprilCraft — Turning Creative Visions into Reality</PageTitle>
+
+<!-- Hero carousel -->
+<section class="ac-hero">
+    <HeroCarousel Slides="_slides" />
+</section>
+
+<!-- Category filter pills -->
+<section class="ac-section ac-gallery-section">
+    <div class="ac-section-header">
+        <h2 class="ac-section-title ac-brand-script">Our Design Gallery</h2>
+        <p class="ac-section-sub">A showcase of creativity and craftsmanship</p>
+    </div>
+
+    <div class="ac-filter-bar">
+        <button class="ac-filter-pill @(_activeCat == null ? "active" : "")"
+                @onclick='() => SetCategory(null)'>All</button>
+        @foreach (var cat in _categories)
+        {
+            var c = cat;
+            <button class="ac-filter-pill @(_activeCat == c.Id ? "active" : "")"
+                    @onclick="() => SetCategory(c.Id)">@c.Name</button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="ac-grid-loading">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (!_designs.Any())
+    {
+        <div class="ac-empty-state">
+            <MudIcon Icon="@Icons.Material.Filled.Palette" Size="Size.Large" />
+            <p>No designs yet — check back soon!</p>
+        </div>
+    }
+    else
+    {
+        <div class="ac-grid">
+            @foreach (var design in _designs)
+            {
+                var d = design;
+                <DesignCard
+                    Title="@d.Title"
+                    ThumbnailUrl="@d.PrimaryVariant?.ThumbnailPath"
+                    Category="@d.Category.Name"
+                    ClientName="@d.ClientName"
+                    Featured="@d.IsFeatured"
+                    Tags="@d.DesignTags.Select(t => t.Tag?.Name ?? "")"
+                    OnClick="@(() => OpenDesign(d))" />
+            }
+        </div>
+
+        @if (_hasMore)
+        {
+            <div class="ac-load-more">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           OnClick="LoadMore" Disabled="_loadingMore">
+                    @(_loadingMore ? "Loading…" : "Load More")
+                </MudButton>
+            </div>
+        }
+    }
+</section>
+
+<!-- Featured section -->
+@if (_featured.Any())
+{
+    <section class="ac-section ac-featured-section">
+        <div class="ac-section-header">
+            <h2 class="ac-section-title ac-brand-script">Featured Work</h2>
+        </div>
+        <div class="ac-featured-grid">
+            @foreach (var d in _featured)
+            {
+                var design = d;
+                <DesignCard
+                    Title="@design.Title"
+                    ThumbnailUrl="@design.PrimaryVariant?.ThumbnailPath"
+                    Category="@design.Category.Name"
+                    ClientName="@design.ClientName"
+                    Featured="true"
+                    OnClick="@(() => OpenDesign(design))" />
+            }
+        </div>
+    </section>
+}
+
+<DesignLightbox @ref="_lightbox" />
+
+@code {
+    private List<Design> _designs = new();
+    private List<Design> _featured = new();
+    private List<Category> _categories = new();
+    private List<HeroCarousel.CarouselSlide> _slides = new();
+    private DesignLightbox _lightbox = null!;
+    private int? _activeCat;
+    private bool _loading = true;
+    private bool _loadingMore;
+    private bool _hasMore;
+    private int _page = 1;
+    private const int PageSize = 12;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await CategoryService.GetAllAsync();
+        await LoadDesigns();
+        _featured = await DesignService.GetAllAsync(featured: true);
+
+        // Build carousel from featured primary variant images
+        _slides = _featured
+            .Where(d => d.PrimaryVariant != null)
+            .Take(12)
+            .Select(d => new HeroCarousel.CarouselSlide(d.PrimaryVariant!.ImagePath, d.Title))
+            .ToList();
+
+        _loading = false;
+    }
+
+    private async Task LoadDesigns()
+    {
+        var all = await DesignService.GetAllAsync(_activeCat);
+        _hasMore = all.Count > PageSize * _page;
+        _designs = all.Take(PageSize * _page).ToList();
+    }
+
+    private async Task SetCategory(int? catId)
+    {
+        _activeCat = catId;
+        _page = 1;
+        await LoadDesigns();
+    }
+
+    private async Task LoadMore()
+    {
+        _loadingMore = true;
+        _page++;
+        await LoadDesigns();
+        _loadingMore = false;
+    }
+
+    private void OpenDesign(Design d) => _lightbox.Open(d);
+}

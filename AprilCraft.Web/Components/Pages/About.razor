@@ -1,0 +1,49 @@
+@page "/about"
+@layout PublicLayout
+@rendermode InteractiveServer
+
+<div class="ac-page-hero">
+    <h1 class="ac-brand-script">About AprilCraft</h1>
+    <p>Crafting ideas into visual stories.</p>
+</div>
+
+<div class="ac-section">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h5" GutterBottom="true">The Story</MudText>
+            <MudText Style="line-height:1.9; opacity:0.85">
+                AprilCraft is a creative design studio dedicated to bringing brands and ideas to life through
+                thoughtful graphic design. From logos and flyers to complete brand identities, every project
+                is crafted with care and attention to detail.
+            </MudText>
+            <MudSpacer />
+            <MudText Style="margin-top:1.5rem; line-height:1.9; opacity:0.85">
+                Each design begins as a conversation — understanding your vision, your audience, and your goals —
+                and ends as something uniquely yours.
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudGrid>
+                @foreach (var (label, value) in Stats)
+                {
+                    <MudItem xs="6">
+                        <MudPaper Class="pa-4" Elevation="2" Style="border-radius:12px; text-align:center;">
+                            <MudText Typo="Typo.h3" Style="color:var(--ac-accent); font-family:'Kaushan Script',cursive;">@value</MudText>
+                            <MudText Typo="Typo.body2" Style="opacity:0.7; margin-top:0.25rem;">@label</MudText>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+</div>
+
+@code {
+    private (string label, string value)[] Stats =
+    [
+        ("Designs Completed", "100+"),
+        ("Happy Clients", "50+"),
+        ("Categories", "8"),
+        ("Years Active", "3+"),
+    ];
+}

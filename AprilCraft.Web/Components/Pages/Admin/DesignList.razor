@@ -1,0 +1,124 @@
+@page "/admin/designs"
+@layout AdminLayout
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@inject IDesignService DesignService
+@inject ICategoryService CategoryService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Designs — AprilCraft Admin</PageTitle>
+
+<div class="ac-admin-page-header">
+    <MudText Typo="Typo.h4">Designs</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" Href="/admin/designs/new">
+        New Design
+    </MudButton>
+</div>
+
+<div class="ac-toolbar mb-4">
+    <MudTextField @bind-Value="_search" Placeholder="Search…" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined"
+                  DebounceInterval="400" OnDebounceIntervalElapsed="Reload" Class="ac-search" />
+    <MudSelect T="int?" Value="_activeCat" ValueChanged="SetCat"
+               Variant="Variant.Outlined" Label="Category">
+        <MudSelectItem T="int?" Value="@null">All</MudSelectItem>
+        @foreach (var cat in _categories)
+        {
+            <MudSelectItem T="int?" Value="@cat.Id">@cat.Name</MudSelectItem>
+        }
+    </MudSelect>
+</div>
+
+<MudTable Items="_designs" Hover="true" Dense="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<Design, object>(x => x.Title)">Title</MudTableSortLabel></MudTh>
+        <MudTh>Thumbnail</MudTh>
+        <MudTh>Category</MudTh>
+        <MudTh>Client</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Design, object>(x => x.DesignDate)">Date</MudTableSortLabel></MudTh>
+        <MudTh>Featured</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Title</MudTd>
+        <MudTd>
+            @if (context.PrimaryVariant?.ThumbnailPath != null)
+            {
+                <img src="@context.PrimaryVariant.ThumbnailPath" class="ac-table-thumb" alt="thumb" />
+            }
+        </MudTd>
+        <MudTd>@context.Category?.Name</MudTd>
+        <MudTd>@context.ClientName</MudTd>
+        <MudTd>@context.DesignDate.ToString("dd MMM yyyy")</MudTd>
+        <MudTd>
+            @if (context.IsFeatured)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+            }
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                           Href="@($"/admin/designs/{context.Id}")" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                           OnClick="() => ConfirmDelete(context)" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No designs found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+<!-- Delete confirm dialog -->
+<MudDialog @bind-Visible="_deleteVisible">
+    <TitleContent>Delete Design</TitleContent>
+    <DialogContent>
+        <MudText>Delete <strong>@_deleteTarget?.Title</strong>? This cannot be undone.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _deleteVisible = false">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="DeleteConfirmed">Delete</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Design> _designs = new();
+    private List<Category> _categories = new();
+    private string? _search;
+    private int? _activeCat;
+    private bool _loading = true;
+    private bool _deleteVisible;
+    private Design? _deleteTarget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await CategoryService.GetAllAsync();
+        await Reload();
+        _loading = false;
+    }
+
+    private async Task Reload() =>
+        _designs = await DesignService.GetAllAsync(_activeCat, _search);
+
+    private async Task SetCat(int? catId)
+    {
+        _activeCat = catId;
+        await Reload();
+    }
+
+    private void ConfirmDelete(Design d)
+    {
+        _deleteTarget = d;
+        _deleteVisible = true;
+    }
+
+    private async Task DeleteConfirmed()
+    {
+        if (_deleteTarget == null) return;
+        await DesignService.DeleteAsync(_deleteTarget.Id);
+        Snackbar.Add("Design deleted.", Severity.Success);
+        _deleteVisible = false;
+        await Reload();
+    }
+}
