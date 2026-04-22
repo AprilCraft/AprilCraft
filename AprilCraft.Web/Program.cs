@@ -10,7 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Database ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-                      ?? "Data Source=aprilcraft.db"));
+                      ?? "Data Source=aprilcraft.db",
+                      sqlite => sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // --- Identity ---
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
@@ -63,9 +64,9 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

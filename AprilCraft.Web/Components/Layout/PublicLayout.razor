@@ -2,9 +2,6 @@
 @inject NavigationManager Nav
 
 <MudThemeProvider @ref="_mudThemeProvider" @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
 
 <!-- Public Navigation -->
 <header class="ac-nav @(_scrolled ? "ac-nav--scrolled" : "")">
