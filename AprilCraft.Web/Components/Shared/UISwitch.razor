@@ -1,0 +1,14 @@
+@rendermode InteractiveServer
+
+<div class="ac-nav-actions">
+    <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                   Color="Color.Inherit" OnClick="OnToggleTheme" Class="ac-theme-btn" />
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                   Class="ac-mobile-menu-btn" OnClick="OnToggleMobile" />
+</div>
+
+@code {
+    [Parameter] public bool IsDarkMode { get; set; }
+    [Parameter] public EventCallback OnToggleTheme { get; set; }
+    [Parameter] public EventCallback OnToggleMobile { get; set; }
+}

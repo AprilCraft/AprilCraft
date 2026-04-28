@@ -1,8 +1,12 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Nav
 
-<MudThemeProvider @ref="_mudThemeProvider" @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
+<MudThemeProvider @ref="_mudThemeProvider" IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
+<div data-theme="@(_isDarkMode ? "dark" : "light")" style="min-height:100vh;background:var(--ac-bg);color:var(--ac-text)">
 <!-- Public Navigation -->
 <header class="ac-nav @(_scrolled ? "ac-nav--scrolled" : "")">
     <div class="ac-nav-inner">
@@ -15,12 +19,7 @@
             <a href="/about" class="@NavClass("/about")">About</a>
             <a href="/contact" class="@NavClass("/contact")">Contact</a>
         </nav>
-        <div class="ac-nav-actions">
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                           Color="Color.Inherit" OnClick="ToggleTheme" Class="ac-theme-btn" />
-            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
-                           Class="ac-mobile-menu-btn" OnClick="ToggleMobile" />
-        </div>
+        <UISwitch />
     </div>
     <div class="ac-mobile-nav @(_mobileOpen ? "open" : "")">
         <a href="/" @onclick="CloseMobile">Home</a>
@@ -60,6 +59,7 @@
         <a href="/account/login" class="ac-admin-link">Admin</a>
     </div>
 </footer>
+</div>
 
 @code {
     private MudThemeProvider _mudThemeProvider = null!;
@@ -91,7 +91,11 @@
         }
     };
 
-    private void ToggleTheme() => _isDarkMode = !_isDarkMode;
+    private void ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+
     private void ToggleMobile() => _mobileOpen = !_mobileOpen;
     private void CloseMobile() => _mobileOpen = false;
 
