@@ -1,6 +1,7 @@
 using AprilCraft.Web.Data.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace AprilCraft.Web.Data;
 
@@ -33,7 +34,7 @@ public static class DbSeeder
         }
 
         // Seed default categories
-        if (!await db.Categories.AnyAsync())
+        if (!db.Categories.Any())
         {
             db.Categories.AddRange(
                 new Category { Name = "Flyer", Description = "Event flyers and promotional materials", Icon = "flyer" },
@@ -48,246 +49,130 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
-        // Seed common tags used in gallery cards and filters.
-        if (!await db.Tags.AnyAsync())
-        {
-            db.Tags.AddRange(
-                new Tag { Name = "Modern" },
-                new Tag { Name = "Minimal" },
-                new Tag { Name = "Corporate" },
-                new Tag { Name = "Event" },
-                new Tag { Name = "Luxury" },
-                new Tag { Name = "Social" },
-                new Tag { Name = "Print" },
-                new Tag { Name = "Branding" }
-            );
-            await db.SaveChangesAsync();
-        }
+        await SeedPortfolioDesignsAsync(db);
+    }
 
-        if (!await db.Inspirations.AnyAsync())
-        {
-            db.Inspirations.AddRange(
-                new Inspiration
-                {
-                    Title = "Swiss Grid Poster Composition",
-                    Description = "High-contrast type and strict grid alignment for event promotions.",
-                    Url = "https://www.behance.net/",
-                    ImagePath = "/assets/images/inspirations/swiss-grid.jpg"
-                },
-                new Inspiration
-                {
-                    Title = "Luxury Monogram Systems",
-                    Description = "Elegant serif logotypes and restrained gold accents.",
-                    Url = "https://dribbble.com/",
-                    ImagePath = "/assets/images/inspirations/luxury-monogram.jpg"
-                },
-                new Inspiration
-                {
-                    Title = "Social Ad Storyboards",
-                    Description = "Mobile-first layouts optimized for social storytelling.",
-                    Url = "https://www.pinterest.com/",
-                    ImagePath = "/assets/images/inspirations/social-ads.jpg"
-                }
-            );
-            await db.SaveChangesAsync();
-        }
+    private static async Task SeedPortfolioDesignsAsync(AppDbContext db)
+    {
+        var contentRoot = Directory.GetCurrentDirectory();
+        var designsDirectory = Path.Combine(contentRoot, "wwwroot", "assets", "images", "designs");
+        var thumbnailsDirectory = Path.Combine(contentRoot, "wwwroot", "assets", "images", "thumbnails");
 
-        if (!await db.Designs.AnyAsync())
-        {
-            var categories = await db.Categories.ToDictionaryAsync(c => c.Name, c => c.Id);
-            var tags = await db.Tags.ToDictionaryAsync(t => t.Name, t => t.Id);
-            var inspirations = await db.Inspirations.ToDictionaryAsync(i => i.Title, i => i.Id);
+        if (!Directory.Exists(designsDirectory))
+            return;
 
-            var designs = new List<Design>
+        var validExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp" };
+        var categoryByName = await db.Categories.ToDictionaryAsync(c => c.Name, StringComparer.OrdinalIgnoreCase);
+        var existingPaths = new HashSet<string>(
+            await db.DesignVariants.Select(v => v.ImagePath).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+
+        var files = Directory
+            .EnumerateFiles(designsDirectory)
+            .Where(path => validExts.Contains(Path.GetExtension(path)))
+            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var now = DateTime.UtcNow;
+        var added = 0;
+
+        foreach (var file in files)
+        {
+            var fileName = Path.GetFileName(file);
+            if (string.IsNullOrWhiteSpace(fileName))
+                continue;
+
+            var imagePath = $"/assets/images/designs/{fileName}";
+            if (existingPaths.Contains(imagePath))
+                continue;
+
+            var thumbnailPath = imagePath;
+            var thumbSource = Path.Combine(thumbnailsDirectory, fileName);
+            if (File.Exists(thumbSource))
+                thumbnailPath = $"/assets/images/thumbnails/{fileName}";
+
+            var title = BuildTitleFromFilename(fileName);
+            var categoryName = InferCategoryName(fileName, title);
+
+            if (!categoryByName.TryGetValue(categoryName, out var category))
+                category = categoryByName["Social Media"];
+
+            var design = new Design
             {
-                new()
+                Title = title,
+                Description = $"Portfolio archive import ({category.Name})",
+                CategoryId = category.Id,
+                ClientName = "AprilCraft",
+                DesignDate = now,
+                IsFeatured = ShouldFeature(fileName, title),
+                CreatedAt = now,
+                UpdatedAt = now,
+                Variants =
                 {
-                    Title = "Glow Night Concert Flyer",
-                    Description = "Bold neon-styled flyer concept for a live music event.",
-                    CategoryId = categories["Flyer"],
-                    ClientName = "Pulse Arena",
-                    DesignDate = new DateTime(2026, 1, 18),
-                    IsFeatured = true,
-                    Variants =
-                    [
-                        new DesignVariant
-                        {
-                            Title = "Primary",
-                            ImagePath = "/assets/images/designs/glow-night-flyer-v1.jpg",
-                            ThumbnailPath = "/assets/images/designs/thumbs/glow-night-flyer-v1.jpg",
-                            IsClientSelected = true,
-                            SortOrder = 1
-                        },
-                        new DesignVariant
-                        {
-                            Title = "Blue Accent",
-                            ImagePath = "/assets/images/designs/glow-night-flyer-v2.jpg",
-                            ThumbnailPath = "/assets/images/designs/thumbs/glow-night-flyer-v2.jpg",
-                            IsClientSelected = false,
-                            SortOrder = 2
-                        }
-                    ],
-                    DesignTags =
-                    [
-                        new DesignTag { TagId = tags["Event"] },
-                        new DesignTag { TagId = tags["Modern"] },
-                        new DesignTag { TagId = tags["Print"] }
-                    ],
-                    ClientFeedbacks =
-                    [
-                        new ClientFeedback
-                        {
-                            ClientName = "Ayo, Event Director",
-                            Feedback = "The headline hierarchy and color punch looked amazing in print.",
-                            Rating = 5,
-                            IsPublic = true
-                        }
-                    ],
-                    Resources =
-                    [
-                        new Resource
-                        {
-                            Name = "Bebas Neue",
-                            Type = ResourceType.Font,
-                            Url = "https://fonts.google.com/specimen/Bebas+Neue",
-                            Notes = "Main display headline font"
-                        }
-                    ],
-                    ModificationHistories =
-                    [
-                        new ModificationHistory
-                        {
-                            VersionLabel = "v1.1",
-                            Notes = "Adjusted CTA contrast and venue details.",
-                            ImagePath = "/assets/images/designs/history/glow-night-flyer-v11.jpg"
-                        }
-                    ],
-                    DesignInspirations =
-                    [
-                        new DesignInspiration { InspirationId = inspirations["Swiss Grid Poster Composition"] }
-                    ]
-                },
-                new()
-                {
-                    Title = "Maison Fleur Monogram",
-                    Description = "Refined monogram and wordmark for a boutique floral brand.",
-                    CategoryId = categories["Logo"],
-                    ClientName = "Maison Fleur",
-                    DesignDate = new DateTime(2026, 2, 4),
-                    IsFeatured = true,
-                    Variants =
-                    [
-                        new DesignVariant
-                        {
-                            Title = "Gold Monogram",
-                            ImagePath = "/assets/images/designs/maison-fleur-logo-v1.jpg",
-                            ThumbnailPath = "/assets/images/designs/thumbs/maison-fleur-logo-v1.jpg",
-                            IsClientSelected = true,
-                            SortOrder = 1
-                        }
-                    ],
-                    DesignTags =
-                    [
-                        new DesignTag { TagId = tags["Luxury"] },
-                        new DesignTag { TagId = tags["Branding"] },
-                        new DesignTag { TagId = tags["Minimal"] }
-                    ],
-                    Resources =
-                    [
-                        new Resource
-                        {
-                            Name = "Cormorant Garamond",
-                            Type = ResourceType.Font,
-                            Url = "https://fonts.google.com/specimen/Cormorant+Garamond"
-                        },
-                        new Resource
-                        {
-                            Name = "Gold Foil Mockup",
-                            Type = ResourceType.Asset,
-                            Url = "https://www.freepik.com/"
-                        }
-                    ],
-                    DesignInspirations =
-                    [
-                        new DesignInspiration { InspirationId = inspirations["Luxury Monogram Systems"] }
-                    ]
-                },
-                new()
-                {
-                    Title = "TechNova Launch Banner",
-                    Description = "Web banner campaign visuals for a SaaS feature launch.",
-                    CategoryId = categories["Banner"],
-                    ClientName = "TechNova",
-                    DesignDate = new DateTime(2026, 3, 1),
-                    IsFeatured = false,
-                    Variants =
-                    [
-                        new DesignVariant
-                        {
-                            Title = "Desktop 1920x600",
-                            ImagePath = "/assets/images/designs/technova-banner-v1.jpg",
-                            ThumbnailPath = "/assets/images/designs/thumbs/technova-banner-v1.jpg",
-                            IsClientSelected = true,
-                            SortOrder = 1
-                        },
-                        new DesignVariant
-                        {
-                            Title = "Tablet 1200x500",
-                            ImagePath = "/assets/images/designs/technova-banner-v2.jpg",
-                            ThumbnailPath = "/assets/images/designs/thumbs/technova-banner-v2.jpg",
-                            IsClientSelected = false,
-                            SortOrder = 2
-                        }
-                    ],
-                    DesignTags =
-                    [
-                        new DesignTag { TagId = tags["Corporate"] },
-                        new DesignTag { TagId = tags["Modern"] }
-                    ],
-                    ClientFeedbacks =
-                    [
-                        new ClientFeedback
-                        {
-                            ClientName = "Maya, Marketing Lead",
-                            Feedback = "Great clarity across responsive sizes.",
-                            Rating = 4,
-                            IsPublic = true
-                        }
-                    ]
-                },
-                new()
-                {
-                    Title = "Cafe Aroma Social Carousel",
-                    Description = "Instagram carousel templates for monthly offers and stories.",
-                    CategoryId = categories["Social Media"],
-                    ClientName = "Cafe Aroma",
-                    DesignDate = new DateTime(2026, 3, 21),
-                    IsFeatured = false,
-                    Variants =
-                    [
-                        new DesignVariant
-                        {
-                            Title = "Warm Tones",
-                            ImagePath = "/assets/images/designs/cafe-aroma-social-v1.jpg",
-                            ThumbnailPath = "/assets/images/designs/thumbs/cafe-aroma-social-v1.jpg",
-                            IsClientSelected = true,
-                            SortOrder = 1
-                        }
-                    ],
-                    DesignTags =
-                    [
-                        new DesignTag { TagId = tags["Social"] },
-                        new DesignTag { TagId = tags["Minimal"] }
-                    ],
-                    DesignInspirations =
-                    [
-                        new DesignInspiration { InspirationId = inspirations["Social Ad Storyboards"] }
-                    ]
+                    new DesignVariant
+                    {
+                        Title = "Primary Version",
+                        Notes = "Seeded from project portfolio archive.",
+                        ImagePath = imagePath,
+                        ThumbnailPath = thumbnailPath,
+                        IsClientSelected = true,
+                        SortOrder = 0,
+                        CreatedAt = now
+                    }
                 }
             };
 
-            db.Designs.AddRange(designs);
-            await db.SaveChangesAsync();
+            db.Designs.Add(design);
+            existingPaths.Add(imagePath);
+            added++;
         }
+
+        if (added > 0)
+            await db.SaveChangesAsync();
+    }
+
+    private static string BuildTitleFromFilename(string fileName)
+    {
+        var raw = Path.GetFileNameWithoutExtension(fileName);
+        if (string.IsNullOrWhiteSpace(raw))
+            return "Untitled Design";
+
+        var cleaned = raw
+            .Replace("_", " ")
+            .Replace("-", " ")
+            .Replace("(compressed)", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("(FILEminimizer)", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("preview", "", StringComparison.OrdinalIgnoreCase);
+
+        cleaned = Regex.Replace(cleaned, "\\s+", " ").Trim();
+        if (string.IsNullOrWhiteSpace(cleaned))
+            return "Untitled Design";
+
+        return cleaned;
+    }
+
+    private static string InferCategoryName(string fileName, string title)
+    {
+        var value = $"{fileName} {title}".ToLowerInvariant();
+
+        if (value.Contains("logo") || value.Contains("badge")) return "Logo";
+        if (value.Contains("business card") || value.Contains("card")) return "Business Card";
+        if (value.Contains("roll up") || value.Contains("banner")) return "Banner";
+        if (value.Contains("book cover") || value.Contains("brochure") || value.Contains("menu card")) return "Brochure";
+        if (value.Contains("certificate") || value.Contains("poster")) return "Poster";
+        if (value.Contains("sticker")) return "Badge";
+
+        return "Flyer";
+    }
+
+    private static bool ShouldFeature(string fileName, string title)
+    {
+        var value = $"{fileName} {title}".ToLowerInvariant();
+        return value.Contains("wedding")
+            || value.Contains("conference")
+            || value.Contains("grand")
+            || value.Contains("seminar")
+            || value.Contains("logo")
+            || value.Contains("book cover");
     }
 }

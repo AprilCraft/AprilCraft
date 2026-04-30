@@ -19,7 +19,7 @@
             <a href="/about" class="@NavClass("/about")">About</a>
             <a href="/contact" class="@NavClass("/contact")">Contact</a>
         </nav>
-        <UISwitch />
+        <UISwitch IsDarkMode="@_isDarkMode" OnToggleTheme="@ToggleTheme" OnToggleMobile="@ToggleMobile" />
     </div>
     <div class="ac-mobile-nav @(_mobileOpen ? "open" : "")">
         <a href="/" @onclick="CloseMobile">Home</a>

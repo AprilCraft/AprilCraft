@@ -1,7 +1,6 @@
 @page "/admin/designs/new"
 @page "/admin/designs/{Id:int}"
 @layout AdminLayout
-@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
 @inject IDesignService DesignService
 @inject ICategoryService CategoryService
