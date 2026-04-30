@@ -18,12 +18,14 @@
     </div>
 
     <div class="ac-filter-bar">
-        <button class="ac-filter-pill @(_activeCat == null ? "active" : "")"
+        <button type="button" class="ac-filter-pill @(_activeCat == null ? "active" : "")"
+            aria-pressed="@(_activeCat == null)"
                 @onclick='() => SetCategory(null)'>All</button>
         @foreach (var cat in _categories)
         {
             var c = cat;
-            <button class="ac-filter-pill @(_activeCat == c.Id ? "active" : "")"
+            <button type="button" class="ac-filter-pill @(_activeCat == c.Id ? "active" : "")"
+                aria-pressed="@(_activeCat == c.Id)"
                     @onclick="() => SetCategory(c.Id)">@c.Name</button>
         }
     </div>

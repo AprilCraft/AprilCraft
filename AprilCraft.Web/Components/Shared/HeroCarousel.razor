@@ -1,6 +1,6 @@
 @* Hero carousel for the home page *@
 
-<div class="ac-carousel" @onmouseenter="PauseAuto" @onmouseleave="ResumeAuto">
+<div class="ac-carousel" role="region" aria-roledescription="carousel" aria-label="Featured design gallery" @onmouseenter="PauseAuto" @onmouseleave="ResumeAuto">
     <div class="ac-carousel-track" style="transform: translateX(-@(_current * 100)%)">
         @foreach (var slide in Slides)
         {
@@ -14,10 +14,10 @@
         }
     </div>
 
-    <button class="ac-carousel-btn ac-carousel-btn--prev" @onclick="Prev" aria-label="Previous">
+    <button type="button" class="ac-carousel-btn ac-carousel-btn--prev" @onclick="Prev" aria-label="Previous slide">
         <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" />
     </button>
-    <button class="ac-carousel-btn ac-carousel-btn--next" @onclick="Next" aria-label="Next">
+    <button type="button" class="ac-carousel-btn ac-carousel-btn--next" @onclick="Next" aria-label="Next slide">
         <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
     </button>
 
@@ -25,8 +25,8 @@
         @for (int i = 0; i < Slides.Count; i++)
         {
             var idx = i;
-            <button class="ac-dot @(_current == idx ? "active" : "")"
-                    @onclick="() => GoTo(idx)" aria-label="Slide @(idx+1)"></button>
+            <button type="button" class="ac-dot @(_current == idx ? "active" : "")"
+                    @onclick="() => GoTo(idx)" aria-label="Go to slide @(idx+1)" aria-current="@(_current == idx)"></button>
         }
     </div>
 </div>

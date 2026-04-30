@@ -1,7 +1,7 @@
 @* Shared design card shown in the gallery grid *@
 @using AprilCraft.Web.Data.Models
 
-<div class="ac-card @(Featured ? "ac-card--featured" : "")" @onclick="OnClick">
+<button type="button" class="ac-card @(Featured ? "ac-card--featured" : "")" @onclick="OnClick" aria-label="@($"Open design {Title}")">
     <div class="ac-card-img-wrap">
         @if (!string.IsNullOrEmpty(ThumbnailUrl))
         {
@@ -38,7 +38,7 @@
             </div>
         }
     </div>
-</div>
+</button>
 
 @code {
     [Parameter] public string Title { get; set; } = string.Empty;

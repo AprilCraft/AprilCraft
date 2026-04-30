@@ -1,16 +1,17 @@
 @* Full-screen lightbox overlay for viewing a design's variants *@
 @using AprilCraft.Web.Data.Models
+@using Microsoft.AspNetCore.Components.Web
 
 @if (_open && Design != null)
 {
-    <div class="ac-lightbox" @onclick="Close">
-        <div class="ac-lightbox-panel" @onclick:stopPropagation="true">
+    <div class="ac-lightbox" @onclick="Close" @onkeydown="HandleKeyDown">
+        <div class="ac-lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" tabindex="0" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
             <div class="ac-lightbox-header">
                 <div>
-                    <h2 class="ac-lightbox-title">@Design.Title</h2>
+                    <h2 id="lightbox-title" class="ac-lightbox-title">@Design.Title</h2>
                     <span class="ac-lightbox-cat">@Design.Category?.Name</span>
                 </div>
-                <button class="ac-lightbox-close" @onclick="Close" aria-label="Close">
+                <button type="button" class="ac-lightbox-close" @onclick="Close" aria-label="Close dialog">
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
                 </button>
             </div>
@@ -34,8 +35,11 @@
                     <div class="ac-lightbox-thumbs">
                         @foreach (var v in Design.Variants.OrderBy(x => x.SortOrder))
                         {
-                            <button class="ac-lightbox-thumb @(_activeVariant?.Id == v.Id ? "active" : "")"
-                                    @onclick="() => _activeVariant = v">
+                            <button type="button"
+                                    class="ac-lightbox-thumb @(_activeVariant?.Id == v.Id ? "active" : "")"
+                                    @onclick="() => SelectVariant(v)"
+                                    aria-label="@($"View variant {v.Title}")"
+                                    aria-pressed="@(_activeVariant?.Id == v.Id)">
                                 <img src="@v.ThumbnailPath" alt="@v.Title" />
                                 @if (v.IsClientSelected)
                                 {
@@ -107,9 +111,22 @@
         StateHasChanged();
     }
 
+    private void SelectVariant(DesignVariant variant)
+    {
+        _activeVariant = variant;
+    }
+
     private void Close()
     {
         _open = false;
         StateHasChanged();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+        {
+            Close();
+        }
     }
 }

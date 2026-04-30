@@ -7,21 +7,22 @@
 <MudSnackbarProvider />
 
 <div data-theme="@(_isDarkMode ? "dark" : "light")" style="min-height:100vh;background:var(--ac-bg);color:var(--ac-text)">
+<a class="ac-skip-link" href="#main-content">Skip to main content</a>
 <!-- Public Navigation -->
 <header class="ac-nav @(_scrolled ? "ac-nav--scrolled" : "")">
     <div class="ac-nav-inner">
         <a href="/" class="ac-brand">
             <span class="ac-brand-script">AprilCraft</span>
         </a>
-        <nav class="ac-nav-links">
+        <nav class="ac-nav-links" aria-label="Primary navigation">
             <a href="/" class="@NavClass("/")">Home</a>
             <a href="/gallery" class="@NavClass("/gallery")">Gallery</a>
             <a href="/about" class="@NavClass("/about")">About</a>
             <a href="/contact" class="@NavClass("/contact")">Contact</a>
         </nav>
-        <UISwitch IsDarkMode="@_isDarkMode" OnToggleTheme="@ToggleTheme" OnToggleMobile="@ToggleMobile" />
+        <UISwitch IsDarkMode="@_isDarkMode" IsMobileMenuOpen="@_mobileOpen" OnToggleTheme="@ToggleTheme" OnToggleMobile="@ToggleMobile" />
     </div>
-    <div class="ac-mobile-nav @(_mobileOpen ? "open" : "")">
+    <div id="mobile-navigation" class="ac-mobile-nav @(_mobileOpen ? "open" : "")" aria-label="Mobile navigation">
         <a href="/" @onclick="CloseMobile">Home</a>
         <a href="/gallery" @onclick="CloseMobile">Gallery</a>
         <a href="/about" @onclick="CloseMobile">About</a>
@@ -29,7 +30,7 @@
     </div>
 </header>
 
-<main class="ac-main">
+<main id="main-content" class="ac-main" tabindex="-1">
     @Body
 </main>
 

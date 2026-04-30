@@ -1,14 +1,25 @@
-@rendermode InteractiveServer
-
 <div class="ac-nav-actions">
-    <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                   Color="Color.Inherit" OnClick="OnToggleTheme" Class="ac-theme-btn" />
-    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
-                   Class="ac-mobile-menu-btn" OnClick="OnToggleMobile" />
+    <button type="button"
+            class="ac-icon-btn ac-theme-btn"
+            @onclick="OnToggleTheme"
+            aria-label="@(IsDarkMode ? "Switch to light mode" : "Switch to dark mode")"
+            title="@(IsDarkMode ? "Switch to light mode" : "Switch to dark mode")">
+        <MudIcon Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" />
+    </button>
+    <button type="button"
+            class="ac-icon-btn ac-mobile-menu-btn"
+            @onclick="OnToggleMobile"
+            aria-controls="mobile-navigation"
+            aria-expanded="@IsMobileMenuOpen"
+            aria-label="@(IsMobileMenuOpen ? "Close menu" : "Open menu")"
+            title="@(IsMobileMenuOpen ? "Close menu" : "Open menu")">
+        <MudIcon Icon="@Icons.Material.Filled.Menu" />
+    </button>
 </div>
 
 @code {
     [Parameter] public bool IsDarkMode { get; set; }
+    [Parameter] public bool IsMobileMenuOpen { get; set; }
     [Parameter] public EventCallback OnToggleTheme { get; set; }
     [Parameter] public EventCallback OnToggleMobile { get; set; }
 }
