@@ -1,7 +1,6 @@
 @inherits LayoutComponentBase
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
 
-<MudThemeProvider Theme="_theme" IsDarkMode="true" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -39,17 +38,4 @@
 
 @code {
     private bool _drawerOpen = true;
-
-    private MudTheme _theme = new()
-    {
-        PaletteDark = new PaletteDark
-        {
-            Primary = "#F0A020",
-            PrimaryContrastText = "#121212",
-            Background = "#121212",
-            Surface = "#1A1A1A",
-            DrawerBackground = "#151515",
-            AppbarBackground = "#0F0F0F",
-        }
-    };
 }

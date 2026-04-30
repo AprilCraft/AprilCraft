@@ -1,7 +1,6 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Nav
 
-<MudThemeProvider @ref="_mudThemeProvider" IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -62,34 +61,9 @@
 </div>
 
 @code {
-    private MudThemeProvider _mudThemeProvider = null!;
     private bool _isDarkMode = true;
     private bool _scrolled;
     private bool _mobileOpen;
-
-    private MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary = "#D4870A",
-            PrimaryContrastText = "#FFFFFF",
-            Background = "#F8F8F8",
-            Surface = "#FFFFFF",
-            DrawerBackground = "#FFFFFF",
-            AppbarBackground = "#FFFFFF",
-            TextPrimary = "#1A1A1A",
-        },
-        PaletteDark = new PaletteDark
-        {
-            Primary = "#F0A020",
-            PrimaryContrastText = "#121212",
-            Background = "#121212",
-            Surface = "#1E1E1E",
-            DrawerBackground = "#1A1A1A",
-            AppbarBackground = "#181818",
-            TextPrimary = "#F0F0F0",
-        }
-    };
 
     private void ToggleTheme()
     {
