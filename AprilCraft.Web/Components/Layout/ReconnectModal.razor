@@ -1,31 +1,161 @@
-﻿<script type="module" src="@Assets["Components/Layout/ReconnectModal.razor.js"]"></script>
+@* Silent reconnect handler — no blocking dialogs. *@
+@* Blazor requires an element with id="components-reconnect-modal" to exist. *@
+@* We keep it but make it invisible; all logic is in JS below. *@
 
-<dialog id="components-reconnect-modal" data-nosnippet>
-    <div class="components-reconnect-container">
-        <div class="components-rejoining-animation" aria-hidden="true">
-            <div></div>
-            <div></div>
-        </div>
-        <p class="components-reconnect-first-attempt-visible">
-            Rejoining the server...
-        </p>
-        <p class="components-reconnect-repeated-attempt-visible">
-            Rejoin failed... trying again in <span id="components-seconds-to-next-attempt"></span> seconds.
-        </p>
-        <p class="components-reconnect-failed-visible">
-            Failed to rejoin.<br />Please retry or reload the page.
-        </p>
-        <button id="components-reconnect-button" class="components-reconnect-failed-visible">
-            Retry
-        </button>
-        <p class="components-pause-visible">
-            The session has been paused by the server.
-        </p>
-        <p class="components-resume-failed-visible">
-            Failed to resume the session.<br />Please retry or reload the page.
-        </p>
-        <button id="components-resume-button" class="components-pause-visible components-resume-failed-visible">
-            Resume
-        </button>
-    </div>
-</dialog>
+<div id="components-reconnect-modal" style="display:none" data-nosnippet></div>
+
+@* Tiny non-intrusive toast that only appears after prolonged disconnect *@
+<div id="ac-reconnect-toast" class="ac-reconnect-toast" style="display:none;">
+    <span class="ac-reconnect-spinner"></span>
+    <span class="ac-reconnect-text">Reconnecting…</span>
+</div>
+
+<style>
+    .ac-reconnect-toast {
+        position: fixed;
+        bottom: 1.25rem;
+        right: 1.25rem;
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 1.1rem;
+        border-radius: 0.75rem;
+        background: rgba(30, 30, 30, 0.92);
+        color: #e0e0e0;
+        font-size: 0.82rem;
+        font-family: inherit;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+        pointer-events: none;
+    }
+
+    .ac-reconnect-toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .ac-reconnect-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255,255,255,0.25);
+        border-top-color: #f0a030;
+        border-radius: 50%;
+        animation: ac-spin 0.7s linear infinite;
+    }
+
+    @@keyframes ac-spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<script suppress-error="BL9992">
+(function () {
+    "use strict";
+
+    const TOAST_DELAY_MS   = 8000;  // show toast after 8 s of disconnect
+    const INITIAL_RETRY_MS = 300;   // first retry after 300 ms
+    const MAX_RETRY_MS     = 8000;  // cap at 8 s between retries
+    const BACKOFF_FACTOR   = 1.6;
+
+    let retryDelay   = INITIAL_RETRY_MS;
+    let retryTimer   = null;
+    let toastTimer   = null;
+    let disconnected = false;
+
+    const toast = document.getElementById("ac-reconnect-toast");
+    const modal = document.getElementById("components-reconnect-modal");
+
+    // --- Toast helpers ---
+    function showToast() {
+        if (toast) { toast.style.display = "flex"; requestAnimationFrame(() => toast.classList.add("visible")); }
+    }
+    function hideToast() {
+        if (toast) { toast.classList.remove("visible"); setTimeout(() => { toast.style.display = "none"; }, 400); }
+    }
+
+    // --- Core reconnect loop ---
+    async function attemptReconnect() {
+        if (!disconnected) return;
+        try {
+            const ok = await Blazor.reconnect();
+            if (ok) {
+                onReconnected();
+            } else {
+                // Server reachable but circuit dead — try resuming, else reload
+                try {
+                    const resumed = await Blazor.resumeCircuit();
+                    if (resumed) { onReconnected(); return; }
+                } catch (_) { /* ignore */ }
+                location.reload();
+            }
+        } catch (_) {
+            // Server unreachable — schedule next attempt with backoff
+            retryDelay = Math.min(retryDelay * BACKOFF_FACTOR, MAX_RETRY_MS);
+            scheduleRetry();
+        }
+    }
+
+    function scheduleRetry() {
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(attemptReconnect, retryDelay);
+    }
+
+    function onDisconnected() {
+        if (disconnected) return;
+        disconnected = true;
+        retryDelay = INITIAL_RETRY_MS;
+
+        // Start retrying immediately in the background
+        scheduleRetry();
+
+        // Only show the toast after a visible delay so fast reconnects are invisible
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(showToast, TOAST_DELAY_MS);
+    }
+
+    function onReconnected() {
+        disconnected = false;
+        clearTimeout(retryTimer);
+        clearTimeout(toastTimer);
+        hideToast();
+    }
+
+    // --- Listen to Blazor reconnect state changes ---
+    if (modal) {
+        modal.addEventListener("components-reconnect-state-changed", function (e) {
+            const state = e.detail.state;
+            if (state === "show" || state === "retrying" || state === "failed") {
+                // Prevent Blazor from opening the default dialog
+                if (modal.open) { try { modal.close(); } catch (_) {} }
+                onDisconnected();
+            } else if (state === "hide") {
+                onReconnected();
+            } else if (state === "rejected") {
+                location.reload();
+            }
+        });
+    }
+
+    // --- Also retry when the tab comes back into focus ---
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible" && disconnected) {
+            retryDelay = INITIAL_RETRY_MS;  // reset backoff on tab focus
+            attemptReconnect();
+        }
+    });
+
+    // --- Online event: instant retry when network comes back ---
+    window.addEventListener("online", function () {
+        if (disconnected) {
+            retryDelay = INITIAL_RETRY_MS;
+            attemptReconnect();
+        }
+    });
+})();
+</script>

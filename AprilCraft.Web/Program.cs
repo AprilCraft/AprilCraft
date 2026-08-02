@@ -78,4 +78,15 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapGet("/sitemap.xml", () =>
+{
+    var baseUrl = "https://aprilcraft.com";
+    var pages = new[] { "", "/gallery", "/about", "/contact" };
+    var urls = pages.Select(p => $"<url><loc>{baseUrl}{p}</loc><changefreq>weekly</changefreq><priority>{(p == "" ? "1.0" : "0.8")}</priority></url>");
+    
+    var xml = $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n{string.Join("\n", urls)}\n</urlset>";
+    
+    return Results.Content(xml, "application/xml");
+});
+
 app.Run();
