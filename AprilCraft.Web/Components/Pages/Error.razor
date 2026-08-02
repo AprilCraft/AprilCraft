@@ -1,30 +1,36 @@
-﻿@page "/Error"
+@page "/Error"
+@layout PublicLayout
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>Error — AprilCraft</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="ac-not-found-container">
+    <div class="ac-not-found-content">
+        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Style="font-size:4rem; margin-bottom:1rem;" />
+        <h1 class="ac-not-found-title">An Unexpected Error Occurred</h1>
+        <p class="ac-not-found-desc">
+            We encountered an issue while processing your request. Please try refreshing or returning to our homepage.
+        </p>
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
-    </p>
-}
+        @if (ShowRequestId)
+        {
+            <div class="ac-error-request-id my-4">
+                <MudText Typo="Typo.caption" Style="opacity:0.7;">Request ID: <code>@RequestId</code></MudText>
+            </div>
+        }
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <div class="ac-not-found-actions mt-6">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/" StartIcon="@Icons.Material.Filled.Home">
+                Return Home
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Href="/gallery" StartIcon="@Icons.Material.Filled.Palette">
+                View Gallery
+            </MudButton>
+        </div>
+    </div>
+</div>
 
-@code{
+@code {
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 

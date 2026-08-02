@@ -11,8 +11,17 @@
 <PageTitle>@(_isNew ? "New Design" : "Edit Design") — AprilCraft Admin</PageTitle>
 
 <div class="ac-admin-page-header">
-    <MudText Typo="Typo.h4">@(_isNew ? "New Design" : $"Edit: {_dto.Title}")</MudText>
-    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/designs">Back</MudButton>
+    <div class="d-flex align-center gap-3">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/designs">Back</MudButton>
+        <MudText Typo="Typo.h5" Style="font-weight:700;">@(_isNew ? "Create New Design" : $"Edit: {_dto.Title}")</MudText>
+    </div>
+    @if (!_isNew && Id.HasValue)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.OpenInNew"
+                   Href="@($"/gallery?design={Id.Value}")" Target="_blank">
+            View Live in Gallery
+        </MudButton>
+    }
 </div>
 
 @if (_loading)
@@ -24,8 +33,8 @@ else
     <MudGrid>
         <!-- Left: core metadata -->
         <MudItem xs="12" md="7">
-            <MudPaper Elevation="2" Class="pa-6">
-                <MudText Typo="Typo.h6" Class="mb-4">Design Details</MudText>
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius:var(--ac-radius);">
+                <MudText Typo="Typo.h6" Class="mb-4 font-weight-bold">Design Metadata</MudText>
                 <MudTextField @bind-Value="_dto.Title" Label="Title" Required="true" Variant="Variant.Outlined" Class="mb-4" />
                 <MudTextField @bind-Value="_dto.Description" Label="Description" Lines="3" Variant="Variant.Outlined" Class="mb-4" />
                 <MudSelect @bind-Value="_dto.CategoryId" Label="Category" Required="true" Variant="Variant.Outlined" Class="mb-4">
@@ -36,17 +45,21 @@ else
                 </MudSelect>
                 <MudTextField @bind-Value="_dto.ClientName" Label="Client Name" Variant="Variant.Outlined" Class="mb-4" />
                 <MudDatePicker @bind-Date="_designDate" Label="Design Date" Variant="Variant.Outlined" Class="mb-4" />
-                <MudSwitch @bind-Value="_dto.IsFeatured" Label="Featured" Color="Color.Primary" />
-                <MudTextField @bind-Value="_tagsInput" Label="Tags (comma separated)" Variant="Variant.Outlined" Class="mt-4" />
+                <MudSwitch @bind-Value="_dto.IsFeatured" Label="Featured on Homepage & Showcase" Color="Color.Primary" />
+                <MudTextField @bind-Value="_tagsInput" Label="Tags (comma separated, e.g. logo, minimal, branding)" Variant="Variant.Outlined" Class="mt-4" />
             </MudPaper>
         </MudItem>
 
         <!-- Right: variants & upload -->
         <MudItem xs="12" md="5">
-            <MudPaper Elevation="2" Class="pa-6 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-4">Design Variants</MudText>
+            <MudPaper Elevation="2" Class="pa-6 mb-4" Style="border-radius:var(--ac-radius);">
+                <MudText Typo="Typo.h6" Class="mb-4 font-weight-bold">Design Variants</MudText>
                 @if (!_isNew && _design != null)
                 {
+                    @if (!_design.Variants.Any())
+                    {
+                        <MudText Typo="Typo.body2" Style="opacity:0.6;" Class="mb-4">No image variants uploaded yet.</MudText>
+                    }
                     @foreach (var v in _design.Variants.OrderBy(x => x.SortOrder))
                     {
                         <div class="ac-variant-row">
@@ -55,73 +68,78 @@ else
                                 <strong>@v.Title</strong>
                                 @if (v.IsClientSelected)
                                 {
-                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Selected</MudChip>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="ml-2">Selected</MudChip>
                                 }
                             </div>
                             <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"
                                            Color="@(v.IsClientSelected ? Color.Success : Color.Default)"
+                                           aria-label="Mark as client selected"
                                            OnClick="() => SetSelected(v.Id)" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           aria-label="Delete variant"
                                            OnClick="() => DeleteVariant(v.Id)" />
                         </div>
                     }
                 }
 
                 <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Upload New Variant</MudText>
-                <MudTextField @bind-Value="_variantTitle" Label="Variant label" Variant="Variant.Outlined" Class="mb-2" />
-                <InputFile id="variantFile" OnChange="HandleVariantUpload" hidden accept="image/*" />
-                <label for="variantFile" class="ac-upload-label">
-                    <MudButton Variant="Variant.Outlined" Component="label" HtmlTag="label"
-                               StartIcon="@Icons.Material.Filled.Upload" For="variantFile">
-                        Choose image
-                    </MudButton>
-                </label>
-                @if (_uploading)
-                {
-                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2" />
-                }
+                <MudTextField @bind-Value="_variantTitle" Label="Variant Label (e.g. Primary, Dark Concept)" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+                
+                <div class="d-flex align-center gap-3">
+                    <InputFile id="variantFileInput" OnChange="HandleVariantUpload" hidden accept="image/png,image/jpeg,image/webp" />
+                    <label for="variantFileInput" style="cursor:pointer; display:inline-block;">
+                        <span class="mud-button-root mud-button mud-button-outlined mud-button-outlined-primary mud-button-size-medium" style="display:inline-flex; align-items:center; gap:8px; padding:6px 16px; border-radius:4px; font-weight:500;">
+                            <MudIcon Icon="@Icons.Material.Filled.Upload" Size="Size.Small" />
+                            Choose Image
+                        </span>
+                    </label>
+                    @if (_uploading)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+                    }
+                </div>
             </MudPaper>
 
             @if (!_isNew && _design != null)
             {
                 <!-- Resources -->
-                <MudPaper Elevation="2" Class="pa-4 mb-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">Resources</MudText>
+                <MudPaper Elevation="2" Class="pa-4 mb-4" Style="border-radius:var(--ac-radius);">
+                    <MudText Typo="Typo.h6" Class="mb-3 font-weight-bold">Resources & Files</MudText>
                     @foreach (var r in _design.Resources)
                     {
                         <div class="ac-resource-row">
-                            <MudChip T="string" Size="Size.Small">@r.Type</MudChip>
-                            <span>@r.Name</span>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@r.Type</MudChip>
+                            <span class="flex-grow-1">@r.Name</span>
                             @if (!string.IsNullOrEmpty(r.Url))
                             {
-                                <a href="@r.Url" target="_blank"><MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" /></a>
+                                <a href="@r.Url" target="_blank" rel="noopener noreferrer"><MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" /></a>
                             }
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                            OnClick="() => DeleteResource(r.Id)" />
                         </div>
                     }
-                    <MudGrid Class="mt-2">
+                    <MudGrid Class="mt-2" Spacing="2">
                         <MudItem xs="4">
-                            <MudSelect @bind-Value="_newResourceType" Label="Type" Variant="Variant.Outlined" Dense="true">
+                            <MudSelect @bind-Value="_newResourceType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                                 @foreach (ResourceType t in Enum.GetValues<ResourceType>())
                                 {
                                     <MudSelectItem Value="t">@t</MudSelectItem>
                                 }
                             </MudSelect>
                         </MudItem>
-                        <MudItem xs="5">
-                            <MudTextField @bind-Value="_newResourceName" Label="Name" Variant="Variant.Outlined" Dense="true" />
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="_newResourceName" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudItem>
-                        <MudItem xs="3" Class="d-flex align-center">
+                        <MudItem xs="2" Class="d-flex align-center">
                             <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddResource" />
                         </MudItem>
                     </MudGrid>
-                    <MudTextField @bind-Value="_newResourceUrl" Label="URL (optional)" Variant="Variant.Outlined" Dense="true" Class="mt-2" />
+                    <MudTextField @bind-Value="_newResourceUrl" Label="Resource Download / Reference URL" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" />
                 </MudPaper>
 
                 <!-- Feedback -->
-                <MudPaper Elevation="2" Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">Client Feedback</MudText>
+                <MudPaper Elevation="2" Class="pa-4" Style="border-radius:var(--ac-radius);">
+                    <MudText Typo="Typo.h6" Class="mb-3 font-weight-bold">Client Feedback</MudText>
                     @foreach (var fb in _design.ClientFeedbacks)
                     {
                         <div class="ac-feedback-item">
@@ -137,11 +155,11 @@ else
                                            OnClick="() => DeleteFeedback(fb.Id)" />
                         </div>
                     }
-                    <MudTextField @bind-Value="_fbClient" Label="Client Name" Variant="Variant.Outlined" Dense="true" Class="mt-2" />
-                    <MudTextField @bind-Value="_fbText" Label="Feedback" Lines="2" Variant="Variant.Outlined" Dense="true" Class="mt-2" />
-                    <div class="d-flex align-center gap-2 mt-2">
+                    <MudTextField @bind-Value="_fbClient" Label="Client Name" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" />
+                    <MudTextField @bind-Value="_fbText" Label="Feedback Quote" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" />
+                    <div class="d-flex align-center justify-space-between gap-2 mt-2">
                         <MudRating @bind-SelectedValue="_fbRating" MaxValue="5" Color="Color.Warning" />
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AddFeedback">Add</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AddFeedback">Add Testimonial</MudButton>
                     </div>
                 </MudPaper>
             }
@@ -149,7 +167,7 @@ else
     </MudGrid>
 
     <div class="ac-form-actions mt-6">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="_saving">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="Save" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
             @(_saving ? "Saving…" : (_isNew ? "Create Design" : "Save Changes"))
         </MudButton>
     </div>
@@ -215,14 +233,14 @@ else
         if (_isNew)
         {
             var created = await DesignService.CreateAsync(_dto);
-            Snackbar.Add("Design created!", Severity.Success);
+            Snackbar.Add("Design created successfully!", Severity.Success);
             Nav.NavigateTo($"/admin/designs/{created.Id}");
         }
         else
         {
             await DesignService.UpdateAsync(Id!.Value, _dto);
             _design = await DesignService.GetByIdAsync(Id.Value);
-            Snackbar.Add("Saved!", Severity.Success);
+            Snackbar.Add("Changes saved successfully!", Severity.Success);
         }
         _saving = false;
     }
@@ -231,31 +249,43 @@ else
     {
         if (_isNew) { Snackbar.Add("Save the design first before uploading images.", Severity.Warning); return; }
         _uploading = true;
-        var file = e.File;
-        using var stream = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
-        var (imgPath, thumbPath) = await ImageService.SaveVariantImageAsync(stream, file.Name, Id!.Value, _variantTitle);
-        await DesignService.AddVariantAsync(Id.Value, new VariantDto
+        try
         {
-            Title = _variantTitle,
-            ImagePath = imgPath,
-            ThumbnailPath = thumbPath,
-            SortOrder = _design?.Variants.Count ?? 0
-        });
-        _design = await DesignService.GetByIdAsync(Id.Value);
-        _uploading = false;
-        Snackbar.Add("Variant uploaded!", Severity.Success);
+            var file = e.File;
+            using var stream = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
+            var (imgPath, thumbPath) = await ImageService.SaveVariantImageAsync(stream, file.Name, Id!.Value, _variantTitle);
+            await DesignService.AddVariantAsync(Id.Value, new VariantDto
+            {
+                Title = _variantTitle,
+                ImagePath = imgPath,
+                ThumbnailPath = thumbPath,
+                SortOrder = _design?.Variants.Count ?? 0
+            });
+            _design = await DesignService.GetByIdAsync(Id.Value);
+            Snackbar.Add("Variant uploaded successfully!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _uploading = false;
+        }
     }
 
     private async Task SetSelected(int variantId)
     {
         await DesignService.SetSelectedVariantAsync(Id!.Value, variantId);
         _design = await DesignService.GetByIdAsync(Id.Value);
+        Snackbar.Add("Client-selected variant updated.", Severity.Info);
     }
 
     private async Task DeleteVariant(int variantId)
     {
         await DesignService.DeleteVariantAsync(variantId);
         _design = await DesignService.GetByIdAsync(Id!.Value);
+        Snackbar.Add("Variant removed.", Severity.Info);
     }
 
     private async Task AddResource()
@@ -270,12 +300,14 @@ else
         _design = await DesignService.GetByIdAsync(Id.Value);
         _newResourceName = string.Empty;
         _newResourceUrl = null;
+        Snackbar.Add("Resource added.", Severity.Success);
     }
 
     private async Task DeleteResource(int resourceId)
     {
         await DesignService.DeleteResourceAsync(resourceId);
         _design = await DesignService.GetByIdAsync(Id!.Value);
+        Snackbar.Add("Resource removed.", Severity.Info);
     }
 
     private async Task AddFeedback()
@@ -291,11 +323,13 @@ else
         _fbClient = string.Empty;
         _fbText = string.Empty;
         _fbRating = 5;
+        Snackbar.Add("Feedback testimonial added.", Severity.Success);
     }
 
     private async Task DeleteFeedback(int feedbackId)
     {
         await DesignService.DeleteFeedbackAsync(feedbackId);
         _design = await DesignService.GetByIdAsync(Id!.Value);
+        Snackbar.Add("Feedback removed.", Severity.Info);
     }
 }

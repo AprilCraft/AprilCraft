@@ -15,19 +15,19 @@
 <!-- Category filter pills -->
 <section class="ac-section ac-gallery-section">
     <div class="ac-section-header">
-        <h2 class="ac-section-title ac-brand-script">Our Design Gallery</h2>
-        <p class="ac-section-sub">A showcase of creativity and craftsmanship</p>
+        <h2 class="ac-section-title ac-brand-script">Our Design Showcase</h2>
+        <p class="ac-section-sub">A curated collection of bespoke craft, branding, and visual design</p>
     </div>
 
-    <div class="ac-filter-bar">
+    <div class="ac-filter-bar" role="tablist" aria-label="Home gallery categories">
         <button type="button" class="ac-filter-pill @(_activeCat == null ? "active" : "")"
-            aria-pressed="@(_activeCat == null)"
+                aria-selected="@(_activeCat == null)" role="tab"
                 @onclick='() => SetCategory(null)'>All</button>
         @foreach (var cat in _categories)
         {
             var c = cat;
             <button type="button" class="ac-filter-pill @(_activeCat == c.Id ? "active" : "")"
-                aria-pressed="@(_activeCat == c.Id)"
+                    aria-selected="@(_activeCat == c.Id)" role="tab"
                     @onclick="() => SetCategory(c.Id)">@c.Name</button>
         }
     </div>
@@ -54,7 +54,7 @@
                 <DesignCard
                     Title="@d.Title"
                     ThumbnailUrl="@d.PrimaryVariant?.ThumbnailPath"
-                    Category="@d.Category.Name"
+                    Category="@(d.Category?.Name ?? "General")"
                     ClientName="@d.ClientName"
                     Featured="@d.IsFeatured"
                     Tags="@d.DesignTags.Select(t => t.Tag?.Name ?? "")"
@@ -80,6 +80,7 @@
     <section class="ac-section ac-featured-section">
         <div class="ac-section-header">
             <h2 class="ac-section-title ac-brand-script">Featured Work</h2>
+            <p class="ac-section-sub">Handpicked masterworks and standout client projects</p>
         </div>
         <div class="ac-featured-grid">
             @foreach (var d in _featured)
@@ -88,7 +89,7 @@
                 <DesignCard
                     Title="@design.Title"
                     ThumbnailUrl="@design.PrimaryVariant?.ThumbnailPath"
-                    Category="@design.Category.Name"
+                    Category="@(design.Category?.Name ?? "General")"
                     ClientName="@design.ClientName"
                     Featured="true"
                     OnClick="@(() => OpenDesign(design))" />
@@ -119,11 +120,24 @@
         _featured = await DesignService.GetAllAsync(featured: true);
 
         // Build carousel from featured primary variant images
-        _slides = _featured
-            .Where(d => d.PrimaryVariant != null)
-            .Take(12)
+        var slides = _featured
+            .Where(d => d.PrimaryVariant != null && !string.IsNullOrEmpty(d.PrimaryVariant.ImagePath))
+            .Take(8)
             .Select(d => new HeroCarousel.CarouselSlide(d.PrimaryVariant!.ImagePath, d.Title))
             .ToList();
+
+        if (slides.Any())
+        {
+            _slides = slides;
+        }
+        else
+        {
+            _slides = new List<HeroCarousel.CarouselSlide>
+            {
+                new("/images/hero-1.webp", "AprilCraft"),
+                new("/images/hero-2.webp", "Creative Design"),
+            };
+        }
 
         _loading = false;
     }

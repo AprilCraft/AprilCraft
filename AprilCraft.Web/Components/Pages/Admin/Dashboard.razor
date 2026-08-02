@@ -6,52 +6,77 @@
 
 <PageTitle>Dashboard — AprilCraft Admin</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-6">Dashboard</MudText>
+<div class="ac-admin-page-header">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight:700;">Admin Dashboard</MudText>
+        <MudText Typo="Typo.body2" Style="color:var(--ac-text-muted);">Overview of portfolio statistics, categories, and recent design updates</MudText>
+    </div>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.OpenInNew" Href="/" Target="_blank">
+            View Live Site
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/designs/new">
+            New Design
+        </MudButton>
+    </div>
+</div>
 
-<MudGrid>
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="ac-stat-card" Elevation="2">
-            <MudIcon Icon="@Icons.Material.Filled.Palette" Color="Color.Primary" Size="Size.Large" />
+<MudGrid Class="mb-6">
+    <MudItem xs="12" sm="6" md="4">
+        <MudPaper Class="ac-stat-card" Elevation="2" Style="border-radius:var(--ac-radius);">
+            <div class="ac-stat-icon-wrapper" style="background:rgba(240,160,32,0.15); border-radius:12px; padding:12px; display:flex;">
+                <MudIcon Icon="@Icons.Material.Filled.Palette" Color="Color.Primary" Size="Size.Large" />
+            </div>
             <div>
-                <MudText Typo="Typo.h4">@_totalDesigns</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Default">Total Designs</MudText>
+                <MudText Typo="Typo.h3" Style="font-weight:700;">@_totalDesigns</MudText>
+                <MudText Typo="Typo.body2" Style="color:var(--ac-text-muted);">Total Designs</MudText>
             </div>
         </MudPaper>
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="ac-stat-card" Elevation="2">
-            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Large" />
+    <MudItem xs="12" sm="6" md="4">
+        <MudPaper Class="ac-stat-card" Elevation="2" Style="border-radius:var(--ac-radius);">
+            <div class="ac-stat-icon-wrapper" style="background:rgba(255,179,0,0.15); border-radius:12px; padding:12px; display:flex;">
+                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Large" />
+            </div>
             <div>
-                <MudText Typo="Typo.h4">@_featuredCount</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Default">Featured</MudText>
+                <MudText Typo="Typo.h3" Style="font-weight:700;">@_featuredCount</MudText>
+                <MudText Typo="Typo.body2" Style="color:var(--ac-text-muted);">Featured Showcase</MudText>
             </div>
         </MudPaper>
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="ac-stat-card" Elevation="2">
-            <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Secondary" Size="Size.Large" />
+    <MudItem xs="12" sm="6" md="4">
+        <MudPaper Class="ac-stat-card" Elevation="2" Style="border-radius:var(--ac-radius);">
+            <div class="ac-stat-icon-wrapper" style="background:rgba(156,39,176,0.15); border-radius:12px; padding:12px; display:flex;">
+                <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Secondary" Size="Size.Large" />
+            </div>
             <div>
-                <MudText Typo="Typo.h4">@_categoryCount</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Default">Categories</MudText>
+                <MudText Typo="Typo.h3" Style="font-weight:700;">@_categoryCount</MudText>
+                <MudText Typo="Typo.body2" Style="color:var(--ac-text-muted);">Active Categories</MudText>
             </div>
         </MudPaper>
     </MudItem>
 </MudGrid>
 
-<MudText Typo="Typo.h5" Class="mt-8 mb-4">Recent Designs</MudText>
-<MudTable Items="_recent" Hover="true" Dense="true" Striped="true">
+<div class="d-flex justify-space-between align-center mt-8 mb-4">
+    <MudText Typo="Typo.h5" Style="font-weight:700;">Recent Designs</MudText>
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/admin/designs" EndIcon="@Icons.Material.Filled.ArrowForward">
+        View All Designs
+    </MudButton>
+</div>
+
+<MudTable Items="_recent" Hover="true" Dense="true" Striped="true" Elevation="2" Style="border-radius:var(--ac-radius); overflow:hidden;">
     <HeaderContent>
         <MudTh>Title</MudTh>
         <MudTh>Category</MudTh>
         <MudTh>Client</MudTh>
         <MudTh>Date</MudTh>
         <MudTh>Featured</MudTh>
-        <MudTh></MudTh>
+        <MudTh Style="text-align:right;">Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd>@context.Title</MudTd>
-        <MudTd>@context.Category?.Name</MudTd>
-        <MudTd>@context.ClientName</MudTd>
+        <MudTd><strong>@context.Title</strong></MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@(context.Category?.Name ?? "Unassigned")</MudChip></MudTd>
+        <MudTd>@(string.IsNullOrEmpty(context.ClientName) ? "—" : context.ClientName)</MudTd>
         <MudTd>@context.DesignDate.ToString("dd MMM yyyy")</MudTd>
         <MudTd>
             @if (context.IsFeatured)
@@ -59,9 +84,11 @@
                 <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
             }
         </MudTd>
-        <MudTd>
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                           Href="@($"/admin/designs/{context.Id}")" />
+        <MudTd Style="text-align:right;">
+            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                           Href="@($"/gallery?design={context.Id}")" Target="_blank" aria-label="View in Gallery" />
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                           Href="@($"/admin/designs/{context.Id}")" aria-label="Edit Design" />
         </MudTd>
     </RowTemplate>
 </MudTable>

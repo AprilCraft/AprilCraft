@@ -2,6 +2,7 @@
 @layout PublicLayout
 @inject IDesignService DesignService
 @inject ICategoryService CategoryService
+@inject NavigationManager Nav
 
 <SeoTags Title="Design Gallery — AprilCraft"
          Description="Browse our full portfolio of creative design work. Filter by categories and discover amazing designs from AprilCraft."
@@ -9,33 +10,87 @@
 
 <section class="ac-page-hero ac-page-hero--sm">
     <h1 class="ac-brand-script">Design Gallery</h1>
-    <p>Browse our full portfolio of creative work</p>
+    <p>Explore our curated showcase of bespoke designs and brand identities</p>
 </section>
 
 <section class="ac-section">
-    <!-- Search + filter row -->
+    <!-- Category Pill Filter Bar -->
+    <div class="ac-filter-bar" role="tablist" aria-label="Filter gallery by category">
+        <button type="button"
+                class="ac-filter-pill @(_activeCat == null ? "active" : "")"
+                @onclick="() => SetCategory(null)"
+                role="tab"
+                aria-selected="@(_activeCat == null)">
+            All Works (@_totalCount)
+        </button>
+        @foreach (var cat in _categories)
+        {
+            var catId = cat.Id;
+            <button type="button"
+                    class="ac-filter-pill @(_activeCat == catId ? "active" : "")"
+                    @onclick="() => SetCategory(catId)"
+                    role="tab"
+                    aria-selected="@(_activeCat == catId)">
+                @cat.Name
+            </button>
+        }
+    </div>
+
+    <!-- Search + dropdown toolbar -->
     <div class="ac-toolbar">
-        <MudTextField @bind-Value="_search" Label="Search designs" Placeholder="Search designs…" Adornment="Adornment.Start"
+        <MudTextField @bind-Value="_search" Placeholder="Search by title, client, or tag…" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined"
-                      DebounceInterval="400" OnDebounceIntervalElapsed="Search"
+                      DebounceInterval="300" OnDebounceIntervalElapsed="Search"
+                      Clearable="true" OnClearButtonClick="ClearSearch"
                       Class="ac-search" />
-        <MudSelect T="int?" Value="_activeCat" ValueChanged="SetCategory"
-                   Variant="Variant.Outlined" Label="Category" Class="ac-cat-select">
-            <MudSelectItem T="int?" Value="@null">All Categories</MudSelectItem>
-            @foreach (var cat in _categories)
+        
+        <div class="d-flex align-center gap-2">
+            <MudSelect T="int?" Value="_activeCat" ValueChanged="SetCategory"
+                       Variant="Variant.Outlined" Label="Category Filter" Class="ac-cat-select" Dense="true">
+                <MudSelectItem T="int?" Value="@null">All Categories</MudSelectItem>
+                @foreach (var cat in _categories)
+                {
+                    <MudSelectItem T="int?" Value="@cat.Id">@cat.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </div>
+
+    <div class="ac-results-header mb-4 d-flex justify-space-between align-center">
+        <MudText Typo="Typo.body2" Style="color:var(--ac-text-muted);">
+            @if (_loading)
             {
-                <MudSelectItem T="int?" Value="@cat.Id">@cat.Name</MudSelectItem>
+                <span>Searching portfolio…</span>
             }
-        </MudSelect>
+            else
+            {
+                <span>Showing <strong>@_designs.Count</strong> @(_designs.Count == 1 ? "design" : "designs")</span>
+            }
+        </MudText>
+        @if (_activeCat != null || !string.IsNullOrWhiteSpace(_search))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="ResetAllFilters" StartIcon="@Icons.Material.Filled.RestartAlt">
+                Reset Filters
+            </MudButton>
+        }
     </div>
 
     @if (_loading)
     {
-        <div class="ac-grid-loading"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+        <div class="ac-grid-loading">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
     }
     else if (!_designs.Any())
     {
-        <MudAlert Severity="Severity.Info" Class="mt-4">No designs match your search.</MudAlert>
+        <div class="ac-empty-state">
+            <MudIcon Icon="@Icons.Material.Outlined.Palette" Style="font-size:3.5rem;opacity:0.4;" />
+            <MudText Typo="Typo.h6">No designs found</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Default">Try adjusting your search terms or category filters.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="ResetAllFilters">
+                View All Designs
+            </MudButton>
+        </div>
     }
     else
     {
@@ -46,43 +101,120 @@
                 <DesignCard
                     Title="@design.Title"
                     ThumbnailUrl="@design.PrimaryVariant?.ThumbnailPath"
-                    Category="@design.Category.Name"
+                    Category="@design.Category?.Name"
                     ClientName="@design.ClientName"
                     Featured="@design.IsFeatured"
                     Tags="@design.DesignTags.Select(t => t.Tag?.Name ?? "")"
-                    OnClick="@(() => _lightbox.Open(design))" />
+                    OnClick="@(() => OpenDesign(design))" />
             }
         </div>
     }
 </section>
 
-<DesignLightbox @ref="_lightbox" />
+<DesignLightbox @ref="_lightbox" OnClosed="OnLightboxClosed" />
 
 @code {
+    [SupplyParameterFromQuery(Name = "cat")]
+    public int? QueryCat { get; set; }
+
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? QuerySearch { get; set; }
+
+    [SupplyParameterFromQuery(Name = "design")]
+    public int? QueryDesign { get; set; }
+
     private List<Design> _designs = new();
     private List<Category> _categories = new();
     private DesignLightbox _lightbox = null!;
     private int? _activeCat;
     private string? _search;
     private bool _loading = true;
+    private int _totalCount;
+    private bool _openedInitialDesign;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _activeCat = QueryCat;
+        _search = QuerySearch;
+    }
 
     protected override async Task OnInitializedAsync()
     {
         _categories = await CategoryService.GetAllAsync();
+        _totalCount = await DesignService.GetTotalCountAsync();
         await Reload();
         _loading = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && QueryDesign.HasValue && !_openedInitialDesign)
+        {
+            _openedInitialDesign = true;
+            var target = _designs.FirstOrDefault(d => d.Id == QueryDesign.Value)
+                         ?? await DesignService.GetByIdAsync(QueryDesign.Value);
+            if (target != null)
+            {
+                _lightbox.Open(target);
+            }
+        }
+    }
+
     private async Task Search() => await Reload();
+
+    private async Task ClearSearch()
+    {
+        _search = null;
+        await Reload();
+    }
 
     private async Task SetCategory(int? catId)
     {
         _activeCat = catId;
+        UpdateUri();
         await Reload();
+    }
+
+    private async Task ResetAllFilters()
+    {
+        _activeCat = null;
+        _search = null;
+        UpdateUri();
+        await Reload();
+    }
+
+    private void UpdateUri()
+    {
+        var uri = Nav.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["cat"] = _activeCat,
+            ["search"] = string.IsNullOrWhiteSpace(_search) ? null : _search,
+            ["design"] = null
+        });
+        Nav.NavigateTo(uri, replace: true);
+    }
+
+    private void OpenDesign(Design design)
+    {
+        var uri = Nav.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["cat"] = _activeCat,
+            ["search"] = string.IsNullOrWhiteSpace(_search) ? null : _search,
+            ["design"] = design.Id
+        });
+        Nav.NavigateTo(uri, replace: true);
+        _lightbox.Open(design);
+    }
+
+    private void OnLightboxClosed()
+    {
+        UpdateUri();
     }
 
     private async Task Reload()
     {
+        _loading = true;
         _designs = await DesignService.GetAllAsync(_activeCat, _search);
+        _loading = false;
     }
 }

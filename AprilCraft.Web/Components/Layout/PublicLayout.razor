@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
 
 <MudThemeProvider IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -7,77 +9,125 @@
 <MudSnackbarProvider />
 
 <div data-theme="@(_isDarkMode ? "dark" : "light")" style="min-height:100vh;background:var(--ac-bg);color:var(--ac-text)">
-<a class="ac-skip-link" href="#main-content">Skip to main content</a>
-<!-- Public Navigation -->
-<header class="ac-nav @(_scrolled ? "ac-nav--scrolled" : "")">
-    <div class="ac-nav-inner">
-        <a href="/" class="ac-brand">
-            <span class="ac-brand-script">AprilCraft</span>
-        </a>
-        <nav class="ac-nav-links" aria-label="Primary navigation">
-            <a href="/" class="@NavClass("/")">Home</a>
-            <a href="/gallery" class="@NavClass("/gallery")">Gallery</a>
-            <a href="/about" class="@NavClass("/about")">About</a>
-            <a href="/contact" class="@NavClass("/contact")">Contact</a>
-        </nav>
-        <UISwitch IsDarkMode="@_isDarkMode" IsMobileMenuOpen="@_mobileOpen" OnToggleTheme="@ToggleTheme" OnToggleMobile="@ToggleMobile" />
-    </div>
-    <div id="mobile-navigation" class="ac-mobile-nav @(_mobileOpen ? "open" : "")" aria-label="Mobile navigation">
-        <a href="/" @onclick="CloseMobile">Home</a>
-        <a href="/gallery" @onclick="CloseMobile">Gallery</a>
-        <a href="/about" @onclick="CloseMobile">About</a>
-        <a href="/contact" @onclick="CloseMobile">Contact</a>
-    </div>
-</header>
-
-<main id="main-content" class="ac-main" tabindex="-1">
-    @Body
-</main>
-
-<footer class="ac-footer">
-    <div class="ac-footer-inner">
-        <div class="ac-footer-brand">
-            <span class="ac-brand-script">AprilCraft</span>
-            <p>Turning your creative visions into reality.</p>
+    <a class="ac-skip-link" href="#main-content">Skip to main content</a>
+    
+    <!-- Public Navigation -->
+    <header class="ac-nav">
+        <div class="ac-nav-inner">
+            <a href="/" class="ac-brand" aria-label="AprilCraft Home">
+                <span class="ac-brand-script">AprilCraft</span>
+            </a>
+            <nav class="ac-nav-links" aria-label="Primary navigation">
+                <a href="/" class="@NavClass("/")">Home</a>
+                <a href="/gallery" class="@NavClass("/gallery")">Gallery</a>
+                <a href="/about" class="@NavClass("/about")">About</a>
+                <a href="/contact" class="@NavClass("/contact")">Contact</a>
+            </nav>
+            <UISwitch IsDarkMode="@_isDarkMode" IsMobileMenuOpen="@_mobileOpen" OnToggleTheme="@ToggleTheme" OnToggleMobile="@ToggleMobile" />
         </div>
-        <div class="ac-footer-links">
-            <h4>Quick Links</h4>
-            <a href="/">Home</a>
-            <a href="/gallery">Gallery</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
+        <div id="mobile-navigation" class="ac-mobile-nav @(_mobileOpen ? "open" : "")" aria-label="Mobile navigation">
+            <a href="/" @onclick="CloseMobile" class="@NavClass("/")">Home</a>
+            <a href="/gallery" @onclick="CloseMobile" class="@NavClass("/gallery")">Gallery</a>
+            <a href="/about" @onclick="CloseMobile" class="@NavClass("/about")">About</a>
+            <a href="/contact" @onclick="CloseMobile" class="@NavClass("/contact")">Contact</a>
         </div>
-        <div class="ac-footer-social">
-            <h4>Follow Us</h4>
-            <div class="ac-social-row">
-                <a href="#" aria-label="Facebook"><MudIcon Icon="@Icons.Custom.Brands.Facebook" /></a>
-                <a href="#" aria-label="Instagram"><MudIcon Icon="@Icons.Material.Filled.PhotoCamera" /></a>
+    </header>
+
+    <main id="main-content" class="ac-main" tabindex="-1">
+        @Body
+    </main>
+
+    <footer class="ac-footer">
+        <div class="ac-footer-inner">
+            <div class="ac-footer-brand">
+                <span class="ac-brand-script">AprilCraft</span>
+                <p>Turning your creative visions into reality with bespoke graphic and brand design.</p>
+            </div>
+            <div class="ac-footer-links">
+                <h4>Quick Links</h4>
+                <a href="/">Home</a>
+                <a href="/gallery">Gallery</a>
+                <a href="/about">About</a>
+                <a href="/contact">Contact</a>
+            </div>
+            <div class="ac-footer-social">
+                <h4>Connect</h4>
+                <div class="ac-social-row">
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><MudIcon Icon="@Icons.Custom.Brands.Facebook" /></a>
+                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><MudIcon Icon="@Icons.Custom.Brands.Instagram" /></a>
+                    <a href="mailto:hello@aprilcraft.com" aria-label="Email"><MudIcon Icon="@Icons.Material.Filled.Email" /></a>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="ac-footer-bottom">
-        <span>© @DateTime.Now.Year AprilCraft. All rights reserved.</span>
-        <a href="/account/login" class="ac-admin-link">Admin</a>
-    </div>
-</footer>
+        <div class="ac-footer-bottom">
+            <span>© @DateTime.Now.Year AprilCraft. All rights reserved.</span>
+            <a href="/account/login" class="ac-admin-link">Admin Portal</a>
+        </div>
+    </footer>
 </div>
 
 @code {
     private bool _isDarkMode = true;
-    private bool _scrolled;
     private bool _mobileOpen;
 
-    private void ToggleTheme()
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var savedTheme = await JS.InvokeAsync<string>("aprilcraftTheme.getTheme");
+                var isDark = savedTheme != "light";
+                if (isDark != _isDarkMode)
+                {
+                    _isDarkMode = isDark;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // Fallback gracefully if JS interop fails
+            }
+        }
+    }
+
+    private async Task ToggleTheme()
     {
         _isDarkMode = !_isDarkMode;
+        try
+        {
+            await JS.InvokeVoidAsync("aprilcraftTheme.setTheme", _isDarkMode ? "dark" : "light");
+        }
+        catch {}
     }
 
     private void ToggleMobile() => _mobileOpen = !_mobileOpen;
     private void CloseMobile() => _mobileOpen = false;
 
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (_mobileOpen)
+        {
+            _mobileOpen = false;
+            StateHasChanged();
+        }
+    }
+
     private string NavClass(string path)
     {
         var current = new Uri(Nav.Uri).AbsolutePath;
-        return current == path ? "ac-nav-link active" : "ac-nav-link";
+        if (path == "/" && current == "/") return "ac-nav-link active";
+        if (path != "/" && current.StartsWith(path, StringComparison.OrdinalIgnoreCase)) return "ac-nav-link active";
+        return "ac-nav-link";
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
     }
 }

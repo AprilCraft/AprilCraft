@@ -1,51 +1,111 @@
 @page "/about"
 @layout PublicLayout
 
-<SeoTags Title="About AprilCraft"
-         Description="Learn more about AprilCraft, a creative design studio dedicated to bringing brands and ideas to life through thoughtful graphic design."
+<SeoTags Title="About AprilCraft — Creative Design Studio"
+         Description="Learn more about AprilCraft, a premier creative design studio dedicated to bringing brands and ideas to life through thoughtful graphic design and visual storytelling."
          Url="https://aprilcraft.com/about" />
+
 <div class="ac-page-hero">
     <h1 class="ac-brand-script">About AprilCraft</h1>
-    <p>Crafting ideas into visual stories.</p>
+    <p>Crafting ideas into memorable visual stories and enduring brand identities</p>
 </div>
 
 <div class="ac-section">
-    <MudGrid>
+    <!-- Story & Stats -->
+    <MudGrid Class="align-center mb-12">
         <MudItem xs="12" md="6">
-            <MudText Typo="Typo.h5" GutterBottom="true">The Story</MudText>
-            <MudText Style="line-height:1.9; opacity:0.85">
-                AprilCraft is a creative design studio dedicated to bringing brands and ideas to life through
-                thoughtful graphic design. From logos and flyers to complete brand identities, every project
-                is crafted with care and attention to detail.
+            <MudText Typo="Typo.h4" Class="ac-brand-script mb-3" Style="color:var(--ac-accent)">The Vision & Story</MudText>
+            <MudText Style="line-height:1.9; opacity:0.9; font-size:1.05rem;" Class="mb-4">
+                <strong>AprilCraft</strong> is an independent design studio founded on the belief that purposeful visual craft elevates brands from ordinary to unforgettable. Every curve, palette choice, and typographic detail is calibrated to tell a compelling story.
             </MudText>
-            <MudSpacer />
-            <MudText Style="margin-top:1.5rem; line-height:1.9; opacity:0.85">
-                Each design begins as a conversation — understanding your vision, your audience, and your goals —
-                and ends as something uniquely yours.
+            <MudText Style="line-height:1.9; opacity:0.85" Class="mb-4">
+                Each collaboration begins with in-depth listening — understanding your core identity, audience expectations, and strategic ambitions — and culminates in bespoke creative assets that resonate and convert.
             </MudText>
+            <div class="d-flex gap-3 mt-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/gallery" StartIcon="@Icons.Material.Filled.Palette">
+                    Explore Gallery
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/contact" StartIcon="@Icons.Material.Filled.Email">
+                    Start a Project
+                </MudButton>
+            </div>
         </MudItem>
         <MudItem xs="12" md="6">
             <MudGrid>
-                @foreach (var (label, value) in Stats)
+                @foreach (var stat in Stats)
                 {
                     <MudItem xs="6">
-                        <MudPaper Class="pa-4" Elevation="2" Style="border-radius:12px; text-align:center;">
-                            <MudText Typo="Typo.h3" Style="color:var(--ac-accent); font-family:'Kaushan Script',cursive;">@value</MudText>
-                            <MudText Typo="Typo.body2" Style="opacity:0.7; margin-top:0.25rem;">@label</MudText>
+                        <MudPaper Class="pa-6 ac-about-stat-card" Elevation="2">
+                            <MudIcon Icon="@stat.Icon" Style="color:var(--ac-accent); font-size:2rem; margin-bottom:0.5rem;" />
+                            <MudText Typo="Typo.h3" Style="color:var(--ac-accent); font-family:'Kaushan Script',cursive;">@stat.Value</MudText>
+                            <MudText Typo="Typo.body2" Style="opacity:0.75; font-weight:600; margin-top:0.25rem;">@stat.Label</MudText>
                         </MudPaper>
                     </MudItem>
                 }
             </MudGrid>
         </MudItem>
     </MudGrid>
+
+    <!-- Services / Core Competencies -->
+    <div class="ac-section-header mt-12">
+        <h2 class="ac-section-title ac-brand-script">What We Do</h2>
+        <p class="ac-section-sub">Comprehensive design solutions crafted from concept to final production</p>
+    </div>
+
+    <div class="ac-services-grid mb-12">
+        <div class="ac-service-card">
+            <div class="ac-service-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Brush" />
+            </div>
+            <h3>Brand Identity & Logos</h3>
+            <p>Memorable logo systems, brand guidelines, color palettes, and full visual identities that establish authority and trust.</p>
+        </div>
+
+        <div class="ac-service-card">
+            <div class="ac-service-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
+            </div>
+            <h3>Packaging & Print Design</h3>
+            <p>Tactile package layouts, labels, brochures, business cards, and print collateral engineered for print perfection.</p>
+        </div>
+
+        <div class="ac-service-card">
+            <div class="ac-service-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Campaign" />
+            </div>
+            <h3>Marketing & Digital Assets</h3>
+            <p>Social media graphics, banner ads, event flyers, and digital marketing materials that captivate attention.</p>
+        </div>
+
+        <div class="ac-service-card">
+            <div class="ac-service-icon">
+                <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" />
+            </div>
+            <h3>Custom Art & Illustration</h3>
+            <p>Bespoke artwork, vector illustrations, icon sets, and specialized creative assets tailored to your brand.</p>
+        </div>
+    </div>
+
+    <!-- Call to action card -->
+    <div class="ac-cta-card mt-12">
+        <div class="ac-cta-content">
+            <h2 class="ac-brand-script">Have a Project in Mind?</h2>
+            <p>Let's collaborate to bring your creative vision to life with precision and style.</p>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/contact" Class="mt-4">
+                Get In Touch Today
+            </MudButton>
+        </div>
+    </div>
 </div>
 
 @code {
-    private (string label, string value)[] Stats =
+    private record StatItem(string Label, string Value, string Icon);
+
+    private StatItem[] Stats =
     [
-        ("Designs Completed", "100+"),
-        ("Happy Clients", "50+"),
-        ("Categories", "8"),
-        ("Years Active", "3+"),
+        new("Designs Crafted", "100+", Icons.Material.Filled.Palette),
+        new("Satisfied Clients", "50+", Icons.Material.Filled.SentimentSatisfiedAlt),
+        new("Creative Categories", "8+", Icons.Material.Filled.Category),
+        new("Years of Craft", "3+", Icons.Material.Filled.WorkspacePremium),
     ];
 }

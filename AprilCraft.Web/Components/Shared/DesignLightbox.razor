@@ -1,39 +1,67 @@
 @* Full-screen lightbox overlay for viewing a design's variants *@
 @using AprilCraft.Web.Data.Models
 @using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 @if (_open && Design != null)
 {
-    <div class="ac-lightbox" @onclick="Close" @onkeydown="HandleKeyDown">
+    <div class="ac-lightbox" @onclick="Close" @onkeydown="HandleKeyDown" tabindex="-1">
         <div class="ac-lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" tabindex="0" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
             <div class="ac-lightbox-header">
                 <div>
                     <h2 id="lightbox-title" class="ac-lightbox-title">@Design.Title</h2>
                     <span class="ac-lightbox-cat">@Design.Category?.Name</span>
                 </div>
-                <button type="button" class="ac-lightbox-close" @onclick="Close" aria-label="Close dialog">
-                    <MudIcon Icon="@Icons.Material.Filled.Close" />
-                </button>
+                <div class="d-flex align-center gap-1">
+                    <button type="button" class="ac-lightbox-action-btn" @onclick="ShareDesign" title="Copy share link" aria-label="Copy share link">
+                        <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
+                    </button>
+                    @if (!string.IsNullOrEmpty(_activeVariant?.ImagePath))
+                    {
+                        <button type="button" class="ac-lightbox-action-btn" @onclick="DownloadActiveImage" title="Download image" aria-label="Download image">
+                            <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Small" />
+                        </button>
+                    }
+                    <button type="button" class="ac-lightbox-close" @onclick="Close" aria-label="Close dialog">
+                        <MudIcon Icon="@Icons.Material.Filled.Close" />
+                    </button>
+                </div>
             </div>
 
             <div class="ac-lightbox-body">
-                <!-- Main image -->
+                <!-- Main image with prev/next navigation -->
                 <div class="ac-lightbox-main">
+                    @if (VariantsList.Count > 1)
+                    {
+                        <button type="button" class="ac-lightbox-nav-btn ac-lightbox-nav-btn--prev" @onclick="PrevVariant" aria-label="Previous variant">
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" />
+                        </button>
+                    }
+
                     @if (_activeVariant != null)
                     {
-                        <img src="@_activeVariant.ImagePath" alt="@_activeVariant.Title"
-                             class="ac-lightbox-img" />
+                        <img src="@_activeVariant.ImagePath" alt="@_activeVariant.Title" class="ac-lightbox-img" />
                         @if (_activeVariant.IsClientSelected)
                         {
                             <span class="ac-lightbox-selected-badge">Client Selected</span>
                         }
                     }
+
+                    @if (VariantsList.Count > 1)
+                    {
+                        <button type="button" class="ac-lightbox-nav-btn ac-lightbox-nav-btn--next" @onclick="NextVariant" aria-label="Next variant">
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+                        </button>
+                    }
                 </div>
-                <!-- Variant strip -->
-                @if (Design.Variants.Count > 1)
+
+                <!-- Variant thumbnail strip -->
+                @if (VariantsList.Count > 1)
                 {
                     <div class="ac-lightbox-thumbs">
-                        @foreach (var v in Design.Variants.OrderBy(x => x.SortOrder))
+                        @foreach (var v in VariantsList)
                         {
                             <button type="button"
                                     class="ac-lightbox-thumb @(_activeVariant?.Id == v.Id ? "active" : "")"
@@ -63,20 +91,45 @@
                         <span><MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" /> @Design.ClientName</span>
                     }
                     <span><MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" /> @Design.DesignDate.ToString("MMM yyyy")</span>
+                    @if (Design.IsFeatured)
+                    {
+                        <span style="color:var(--ac-accent);font-weight:600;"><MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" /> Featured Work</span>
+                    }
                 </div>
-                @if (Design.DesignTags.Any())
+
+                @if (Design.DesignTags != null && Design.DesignTags.Any())
                 {
                     <div class="ac-card-tags">
                         @foreach (var dt in Design.DesignTags)
                         {
-                            <span class="ac-tag">@dt.Tag?.Name</span>
+                            @if (dt.Tag != null)
+                            {
+                                <span class="ac-tag">#@dt.Tag.Name</span>
+                            }
                         }
                     </div>
                 }
-                @if (Design.ClientFeedbacks.Any(f => f.IsPublic))
+
+                @if (Design.Resources != null && Design.Resources.Any())
                 {
-                    <div class="ac-lightbox-feedbacks">
-                        <h4>Client Feedback</h4>
+                    <div class="ac-lightbox-resources mt-3">
+                        <span class="ac-lightbox-section-label">Resources & Assets</span>
+                        <div class="d-flex flex-wrap gap-2 mt-1">
+                            @foreach (var res in Design.Resources)
+                            {
+                                <a href="@res.Url" target="_blank" rel="noopener noreferrer" class="ac-resource-badge">
+                                    <MudIcon Icon="@Icons.Material.Filled.Attachment" Size="Size.Small" />
+                                    <span>@res.Name (@res.Type)</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (Design.ClientFeedbacks != null && Design.ClientFeedbacks.Any(f => f.IsPublic))
+                {
+                    <div class="ac-lightbox-feedbacks mt-4">
+                        <h4>Client Testimonials</h4>
                         @foreach (var fb in Design.ClientFeedbacks.Where(f => f.IsPublic).Take(2))
                         {
                             <div class="ac-feedback-item">
@@ -87,7 +140,7 @@
                                                  Size="Size.Small" Color="Color.Warning" />
                                     }
                                 </div>
-                                <p class="ac-feedback-text">@fb.Feedback</p>
+                                <p class="ac-feedback-text">“@fb.Feedback”</p>
                                 <span class="ac-feedback-by">— @fb.ClientName</span>
                             </div>
                         }
@@ -99,14 +152,18 @@
 }
 
 @code {
+    [Parameter] public EventCallback OnClosed { get; set; }
+
     private bool _open;
     private Design? Design;
     private DesignVariant? _activeVariant;
 
+    private List<DesignVariant> VariantsList => Design?.Variants?.OrderBy(x => x.SortOrder).ToList() ?? new();
+
     public void Open(Design design)
     {
         Design = design;
-        _activeVariant = design.PrimaryVariant;
+        _activeVariant = design.PrimaryVariant ?? design.Variants?.FirstOrDefault();
         _open = true;
         StateHasChanged();
     }
@@ -116,17 +173,63 @@
         _activeVariant = variant;
     }
 
-    private void Close()
+    private void NextVariant()
+    {
+        var list = VariantsList;
+        if (list.Count <= 1) return;
+        var idx = list.FindIndex(v => v.Id == _activeVariant?.Id);
+        var nextIdx = (idx + 1) % list.Count;
+        _activeVariant = list[nextIdx];
+    }
+
+    private void PrevVariant()
+    {
+        var list = VariantsList;
+        if (list.Count <= 1) return;
+        var idx = list.FindIndex(v => v.Id == _activeVariant?.Id);
+        var prevIdx = (idx - 1 + list.Count) % list.Count;
+        _activeVariant = list[prevIdx];
+    }
+
+    public async Task Close()
     {
         _open = false;
+        await OnClosed.InvokeAsync();
         StateHasChanged();
     }
 
-    private void HandleKeyDown(KeyboardEventArgs args)
+    private async Task ShareDesign()
+    {
+        if (Design == null) return;
+        var uri = Nav.ToAbsoluteUri($"/gallery?design={Design.Id}").ToString();
+        var copied = await JS.InvokeAsync<bool>("aprilcraftTheme.copyToClipboard", uri);
+        if (copied)
+        {
+            Snackbar.Add("Link copied to clipboard!", Severity.Success);
+        }
+    }
+
+    private async Task DownloadActiveImage()
+    {
+        if (_activeVariant == null || string.IsNullOrEmpty(_activeVariant.ImagePath)) return;
+        var filename = $"{Design?.Title ?? "aprilcraft"}-{_activeVariant.Title}.jpg";
+        await JS.InvokeVoidAsync("aprilcraftTheme.downloadFile", _activeVariant.ImagePath, filename);
+        Snackbar.Add("Download started.", Severity.Info);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
     {
         if (args.Key == "Escape")
         {
-            Close();
+            await Close();
+        }
+        else if (args.Key == "ArrowRight")
+        {
+            NextVariant();
+        }
+        else if (args.Key == "ArrowLeft")
+        {
+            PrevVariant();
         }
     }
 }

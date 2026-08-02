@@ -1,5 +1,35 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout PublicLayout
+@inject NavigationManager Nav
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Page Not Found — AprilCraft</PageTitle>
+
+<div class="ac-not-found-container">
+    <div class="ac-not-found-content">
+        <span class="ac-404-number ac-brand-script">404</span>
+        <h1 class="ac-not-found-title">Page Not Found</h1>
+        <p class="ac-not-found-desc">
+            The page or creative piece you are searching for might have been moved, renamed, or is temporarily unavailable.
+        </p>
+
+        <div class="ac-not-found-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/" StartIcon="@Icons.Material.Filled.Home">
+                Back to Home
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Href="/gallery" StartIcon="@Icons.Material.Filled.Palette">
+                Browse Gallery
+            </MudButton>
+        </div>
+
+        <div class="ac-not-found-links mt-8">
+            <MudText Typo="Typo.caption" Style="color:var(--ac-text-muted);">Looking for something specific?</MudText>
+            <div class="d-flex justify-center gap-4 mt-2">
+                <a href="/about" class="ac-link-muted">About Us</a>
+                <span style="opacity:0.3">•</span>
+                <a href="/contact" class="ac-link-muted">Contact Studio</a>
+                <span style="opacity:0.3">•</span>
+                <a href="/gallery" class="ac-link-muted">All Categories</a>
+            </div>
+        </div>
+    </div>
+</div>
