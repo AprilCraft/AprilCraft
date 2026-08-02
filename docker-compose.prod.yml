@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  aprilcraft-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aprilcraft-web:latest
+    container_name: aprilcraft-web
+    restart: unless-stopped
+    volumes:
+      - aprilcraft_gallery:/app/wwwroot/images/gallery
+      - aprilcraft_db:/app/Data # Assuming SQLite DB is persisted here, or just mount a generic data volume
+    networks:
+      - proxy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.aprilcraft.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.services.aprilcraft.loadbalancer.server.port=80"
+
+volumes:
+  aprilcraft_gallery:
+  aprilcraft_db:
+
+networks:
+  proxy-network:
+    external: true

@@ -1,0 +1,47 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup environment file securely
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p /opt/projects/aprilcraft
+            
+            # Using single echo statements to avoid SSH heredoc injection bugs
+            echo "GalleryFolderPath=wwwroot/images/gallery" > /opt/projects/aprilcraft/.env.production
+            echo "APP_DOMAIN=aprilcraft.157.173.112.19.nip.io" >> /opt/projects/aprilcraft/.env.production
+            
+            # (Add additional secrets here if needed in the future)
+
+      - name: Copy files via scp
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "."
+          target: "/opt/projects/aprilcraft"
+
+      - name: Build and Deploy Container
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/projects/aprilcraft
+            sudo docker compose -f docker-compose.prod.yml up -d --build
