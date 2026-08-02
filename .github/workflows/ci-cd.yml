@@ -44,4 +44,4 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/projects/aprilcraft
-            sudo docker compose -f docker-compose.prod.yml up -d --build
+            sudo docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
