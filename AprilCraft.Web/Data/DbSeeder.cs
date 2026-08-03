@@ -73,26 +73,27 @@ public static class DbSeeder
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var groupedDesigns = files
+            .GroupBy(file => BuildDesignKey(Path.GetFileNameWithoutExtension(file)))
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         var now = DateTime.UtcNow;
         var added = 0;
 
-        foreach (var file in files)
+        foreach (var group in groupedDesigns)
         {
-            var fileName = Path.GetFileName(file);
-            if (string.IsNullOrWhiteSpace(fileName))
+            var designFiles = group
+                .OrderBy(file => Path.GetFileName(file), StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (designFiles.Count == 0)
                 continue;
 
-            var imagePath = $"/assets/images/designs/{fileName}";
-            if (existingPaths.Contains(imagePath))
-                continue;
-
-            var thumbnailPath = imagePath;
-            var thumbSource = Path.Combine(thumbnailsDirectory, fileName);
-            if (File.Exists(thumbSource))
-                thumbnailPath = $"/assets/images/thumbnails/{fileName}";
-
-            var title = BuildTitleFromFilename(fileName);
-            var categoryName = InferCategoryName(fileName, title);
+            var representativeFile = designFiles[0];
+            var representativeName = Path.GetFileName(representativeFile);
+            var title = BuildTitleFromFilename(representativeName);
+            var categoryName = InferCategoryName(representativeName, title);
 
             if (!categoryByName.TryGetValue(categoryName, out var category))
                 category = categoryByName["Social Media"];
@@ -104,26 +105,46 @@ public static class DbSeeder
                 CategoryId = category.Id,
                 ClientName = "AprilCraft",
                 DesignDate = now,
-                IsFeatured = ShouldFeature(fileName, title),
+                IsFeatured = designFiles.Any(file => ShouldFeature(Path.GetFileName(file), BuildTitleFromFilename(Path.GetFileName(file)))),
                 CreatedAt = now,
-                UpdatedAt = now,
-                Variants =
-                {
-                    new DesignVariant
-                    {
-                        Title = "Primary Version",
-                        Notes = "Seeded from project portfolio archive.",
-                        ImagePath = imagePath,
-                        ThumbnailPath = thumbnailPath,
-                        IsClientSelected = true,
-                        SortOrder = 0,
-                        CreatedAt = now
-                    }
-                }
+                UpdatedAt = now
             };
 
+            var variantOrder = 0;
+            foreach (var file in designFiles)
+            {
+                var fileName = Path.GetFileName(file);
+                if (string.IsNullOrWhiteSpace(fileName))
+                    continue;
+
+                var imagePath = $"/assets/images/designs/{fileName}";
+                if (existingPaths.Contains(imagePath))
+                    continue;
+
+                var thumbnailPath = imagePath;
+                var thumbSource = Path.Combine(thumbnailsDirectory, fileName);
+                if (File.Exists(thumbSource))
+                    thumbnailPath = $"/assets/images/thumbnails/{fileName}";
+
+                design.Variants.Add(new DesignVariant
+                {
+                    Title = BuildVariantTitle(fileName),
+                    Notes = "Seeded from project portfolio archive.",
+                    ImagePath = imagePath,
+                    ThumbnailPath = thumbnailPath,
+                    IsClientSelected = variantOrder == 0,
+                    SortOrder = variantOrder,
+                    CreatedAt = now
+                });
+
+                existingPaths.Add(imagePath);
+                variantOrder++;
+            }
+
+            if (design.Variants.Count == 0)
+                continue;
+
             db.Designs.Add(design);
-            existingPaths.Add(imagePath);
             added++;
         }
 
@@ -142,13 +163,46 @@ public static class DbSeeder
             .Replace("-", " ")
             .Replace("(compressed)", "", StringComparison.OrdinalIgnoreCase)
             .Replace("(FILEminimizer)", "", StringComparison.OrdinalIgnoreCase)
-            .Replace("preview", "", StringComparison.OrdinalIgnoreCase);
+            .Replace("preview", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("main flyer", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("poster", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("social", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("share", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("print", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("mockup", "", StringComparison.OrdinalIgnoreCase);
 
         cleaned = Regex.Replace(cleaned, "\\s+", " ").Trim();
         if (string.IsNullOrWhiteSpace(cleaned))
             return "Untitled Design";
 
         return cleaned;
+    }
+
+    private static string BuildVariantTitle(string fileName)
+    {
+        var variant = BuildTitleFromFilename(fileName);
+        if (string.IsNullOrWhiteSpace(variant) || variant.Equals("Untitled Design", StringComparison.OrdinalIgnoreCase))
+            return "Primary Version";
+
+        return char.ToUpperInvariant(variant[0]) + variant[1..];
+    }
+
+    private static string BuildDesignKey(string rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+            return "untitled";
+
+        var value = rawName
+            .Replace("(", " ", StringComparison.OrdinalIgnoreCase)
+            .Replace(")", " ", StringComparison.OrdinalIgnoreCase)
+            .Replace("_", " ")
+            .Replace("-", " ");
+
+        value = Regex.Replace(value, "(?i)\\b(preview|mockup|main flyer|poster|social|share|print|version|variant|v\\d+)\\b", " ");
+        value = Regex.Replace(value, "[^a-zA-Z0-9 ]+", " ");
+        value = Regex.Replace(value, "\\s+", " ").Trim();
+
+        return value.ToLowerInvariant();
     }
 
     private static string InferCategoryName(string fileName, string title)
